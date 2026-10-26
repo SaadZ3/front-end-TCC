@@ -1,5 +1,7 @@
 # Frontend do protótipo
 
+Publicação na Vercel: siga [VERCEL.md](VERCEL.md). O `vercel.json` encaminha `/api` ao backend do Railway e permite abrir ou recarregar as rotas do React diretamente.
+
 O projeto usa um único método de avaliação da qualidade da informação documentada, com notas de **0 a 3**. Consulte [a atualização do método](../docs/AVALIACAO_UNIFICADA.md).
 
 React/TypeScript/Vite. Cadastro, login, envio de PDF/TXT, histórico com exclusão, resultado com evidências e exportação PDF/JSON estão disponíveis.
