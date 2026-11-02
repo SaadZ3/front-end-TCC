@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Icon from '../../components/Icon';
 import { labels, type Grade } from '../../services/analyses';
-import { filterSegments, gradeDescriptions, type CategoryScore, type SegmentRow } from './dashboardData';
+import { categoryScoreText, filterSegments, gradeDescriptions, type CategoryScore, type SegmentRow } from './dashboardData';
 import SegmentRecommendations, { HighlightedText } from './SegmentRecommendations';
 import type { SegmentGuidance } from './recommendationData';
 
@@ -68,7 +68,7 @@ function PaginatedRows({ rows, guidance, partial }: { rows: SegmentRow[]; guidan
                   return <div key={category.label} title={`Nota de ${category.title} na política`}>
                     <GradeBadge grade={grade} />
                     <span className="grade-description">
-                      {segment.truncated ? 'Trecho excluído do cálculo' : grade === null ? 'Categoria sem nota' : gradeDescriptions[grade]}
+                      {segment.truncated ? 'Trecho excluído do cálculo' : grade === null ? categoryScoreText(category) : gradeDescriptions[grade]}
                     </span>
                   </div>;
                 }) : <GradeBadge grade={null} />}
@@ -111,7 +111,7 @@ export default function SegmentsTable({ rows, categories, query, onQuery, catego
       <div>
         <div className="panel-heading">
           <h2 id="segments-title">Trechos classificados e avaliados</h2>
-          <p>Confira o texto, as categorias atribuídas e suas notas na política.</p>
+          <p>Confira os temas identificados e a nota ou o motivo de ausência de nota. Categorias fora da pontuação também podem ser filtradas.</p>
         </div>
         <span className="count-pill">
           {rows.length} trechos</span>
@@ -132,7 +132,9 @@ export default function SegmentsTable({ rows, categories, query, onQuery, catego
           <option value="all">Todas as notas</option>
           {[0, 1, 2, 3].map(value => <option key={value} value={value}>Nota {value}
           </option>)}
-          <option value="none">Sem nota</option>
+          <option value="none">Sem nota (todos os motivos)</option>
+          <option value="not_scored">Fora da pontuação atual</option>
+          <option value="inconclusive">Avaliação inconclusiva</option>
         </select>
       </div>
     </div>

@@ -130,7 +130,7 @@ export default function ResultDashboard({ analysis, query, onQuery, tab, onTab, 
         </section>
       </div>
       <CategoryCharts categories={categories} selected={category} onSelect={selectCategory} />
-      <SegmentsTable rows={rows} categories={categories} query={query} onQuery={onQuery} category={category} onCategory={setCategory} guidance={guidance.bySegment} partial={analysis.result.extraction.status !== 'ok'} />
+      <SegmentsTable key={category} rows={rows} categories={categories} query={query} onQuery={onQuery} category={category} onCategory={setCategory} guidance={guidance.bySegment} partial={analysis.result.extraction.status !== 'ok'} />
       <GeneralRecommendations items={guidance.general} partial={analysis.result.extraction.status !== 'ok'} />
       <div className="grade-legend" aria-label="Escala de avaliação">
         <strong>Escala de avaliação</strong>

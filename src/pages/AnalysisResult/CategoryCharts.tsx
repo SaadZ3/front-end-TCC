@@ -2,7 +2,7 @@
 import { useId } from 'react';
 import Icon from '../../components/Icon';
 import { number } from '../../services/analyses';
-import type { CategoryScore } from './dashboardData';
+import { categoryDetectionText, categoryScoreText, type CategoryScore } from './dashboardData';
 
 /** Recebe o rótulo e devolve linhas curtas para sua apresentação no gráfico. */
 function wrapLabel(label: string) {
@@ -70,8 +70,8 @@ export default function CategoryCharts({ categories, selected, onSelect }: {
     <section className="result-panel chart-panel" aria-labelledby="category-chart-title">
       <div className="panel-heading">
         <h2 id="category-chart-title">
-          <Icon name="chart" size={15} />Nota por categoria</h2>
-        <p>Compare as notas das categorias avaliadas nesta política.</p>
+          <Icon name="chart" size={15} />Categorias identificadas e notas</h2>
+        <p>O sistema identifica 10 categorias. O método atual pontua 7; as outras 3 permitem consultar os trechos, sem participar da média.</p>
       </div>
       <div className="bar-chart">
         <div className="bar-scale" aria-hidden="true">
@@ -83,25 +83,26 @@ export default function CategoryCharts({ categories, selected, onSelect }: {
           </div>
         </div>
         {categories.map(category => <button key={category.label} className="category-bar" aria-pressed={selected === category.label}
-          aria-label={`Filtrar ${category.title}: ${category.score === null ? 'sem nota' : `${number(category.score)} de 3`}`}
+          aria-label={`Filtrar ${category.title}: ${category.score === null ? categoryScoreText(category) : `${number(category.score)} de 3`}. ${categoryDetectionText(category)}`}
           onClick={() => onSelect(selected === category.label ? 'all' : category.label)}>
           <span className="bar-title">
             {category.title}
+            <small className="category-detection">{categoryDetectionText(category)}</small>
           </span>
-          <span className="bar-track" aria-hidden="true">
-            <span className="bar-fill" style={{ width: `${(category.score ?? 0) / 3 * 100}%` }} />
-          </span>
-          <span className="bar-value">
-            {category.score === null ? '—' : number(category.score)}
-          </span>
+          {category.score === null ? <span className="bar-status">{categoryScoreText(category)}</span> : <>
+            <span className="bar-track" aria-hidden="true">
+              <span className="bar-fill" style={{ width: `${category.score / 3 * 100}%` }} />
+            </span>
+            <span className="bar-value">{number(category.score)}</span>
+          </>}
         </button>)}
       </div>
-      <p className="chart-note">Escala de 0 a 3 · Traço indica categoria sem nota emitida.</p>
+      <p className="chart-note">Clique em qualquer categoria para consultar seus trechos. “Tema não identificado” não prova ausência: a classificação é automática e a avaliação das notas também procura evidências em outros trechos.</p>
     </section>
     <section className="result-panel chart-panel" aria-labelledby="radar-title">
       <div className="panel-heading">
         <h2 id="radar-title">Perfil da política</h2>
-        <p>Gráfico de teia com as mesmas notas por categoria.</p>
+        <p>Mostra apenas categorias com nota disponível, incluindo nota zero. Categorias fora da pontuação ou sem nota emitida não entram no radar.</p>
       </div>
       <Radar categories={categories} />
       <div className="radar-legend">

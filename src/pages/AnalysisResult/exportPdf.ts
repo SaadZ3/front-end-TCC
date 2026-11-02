@@ -3,9 +3,8 @@ import { formatPolicyMean, policyMean } from './policyMean';
 import { scoreBlockerMessages } from './scoreBlockers';
 import type { Content, TDocumentDefinitions, TableCell } from 'pdfmake/interfaces';
 import { date, labels, scopeNames, type Grade } from '../../services/analyses';
-import { dashboardData, gradeDescriptions, type SegmentRow, type CompletedAnalysis } from './dashboardData';
+import { categoryDetectionText, categoryScoreText, dashboardData, gradeDescriptions, type SegmentRow, type CompletedAnalysis } from './dashboardData';
 
-const grade = (score: Grade | null) => score === null ? 'Sem nota' : `${score} / 3`;
 const heading = (text: string): Content => ({ text, headlineLevel: 1, style: 'heading', margin: [0, 18, 0, 8] });
 /** Recebe cabeçalhos, células e larguras e retorna uma tabela do relatório. */
 function table(headers: string[], rows: TableCell[][], widths: Array<string | number>): Content {
@@ -34,7 +33,7 @@ function appendSegments(content: Content[], rows: SegmentRow[]): void {
           margin: [0, 10, 0, 4]
         },
         {
-          text: segmentCategories.length ? segmentCategories.map(category => `${labels[category.label] ?? category.title}: ${segment.truncated ? 'Sem nota (trecho truncado)' : grade(category.score)}`).join(' | ') : 'Sem categoria identificada',
+          text: segmentCategories.length ? segmentCategories.map(category => `${labels[category.label] ?? category.title}: ${segment.truncated ? 'Sem nota (trecho truncado)' : categoryScoreText(category)}`).join(' | ') : 'Sem categoria identificada',
           style: 'muted',
           margin: [0, 0, 0, 4]
         },
@@ -50,7 +49,8 @@ function appendRecommendations(content: Content[], evaluation: CompletedAnalysis
     content.push(heading('Recomendações'));
     for (const recommendation of evaluation.recommendations) {
       content.push({ text: recommendation.what_to_do, bold: true, margin: [0, 8, 0, 4] }, { text: recommendation.trigger_reason });
-      if (recommendation.how_to_do.length) content.push({ ul: recommendation.how_to_do, margin: [0, 4, 0, 6] });
+      // O pdfmake transforma itens de lista durante a renderização; não pode receber o estado da tela por referência.
+      if (recommendation.how_to_do.length) content.push({ ul: [...recommendation.how_to_do], margin: [0, 4, 0, 6] });
       if (recommendation.applicability_note) content.push({ text: recommendation.applicability_note, style: 'muted' });
     }
   }
@@ -90,8 +90,14 @@ export function analysisPdfDefinition(analysis: CompletedAnalysis): TDocumentDef
       text: 'Um trecho pode receber mais de uma categoria. A exportação inclui todos os trechos, independentemente dos filtros do dashboard.',
       style: 'muted'
     },
-    heading('Notas por categoria'),
-    table(['Categoria', 'Nota da categoria na política'], categories.map(category => [labels[category.label] ?? category.title, grade(category.score)]), ['*', 150]),
+    heading('Categorias identificadas e notas'),
+    {
+      text: 'O sistema identifica 10 categorias. O método atual pontua 7; as outras 3 permitem consultar os trechos, sem participar da média. Tema não identificado não prova ausência: a avaliação também procura evidências em outros trechos.',
+      style: 'muted', margin: [0, 0, 0, 8],
+    },
+    table(['Categoria', 'Detecção do tema', 'Nota ou motivo'], categories.map(category => [
+      labels[category.label] ?? category.title, categoryDetectionText(category), categoryScoreText(category),
+    ]), ['*', '*', '*']),
     {
       text: ([0, 1, 2, 3] as Grade[]).map(score => `${score}: ${gradeDescriptions[score]}`).join('  |  '),
       style: 'muted'

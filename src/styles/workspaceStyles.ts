@@ -572,6 +572,19 @@ export const WorkspaceFrame = styled.div`
   .bar-title {
     line-height: 1.3;
   }
+  .category-detection {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 10px;
+  }
+  .bar-status {
+    grid-column: 2 / -1;
+    color: var(--muted);
+    padding: 5px 8px;
+    background: #f0f4f8;
+    border-radius: 4px;
+  }
   .bar-track {
     height: 13px;
     border-radius: 1px;

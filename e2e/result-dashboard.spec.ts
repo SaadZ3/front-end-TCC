@@ -143,7 +143,7 @@ test('paginação, busca, categorias e notas funcionam em conjunto e reiniciam n
 
 test('barra filtra os trechos e busca superior pode ser usada por teclado', async ({ page }) => {
   await mock(page);
-  await page.getByRole('button', { name: 'Filtrar Retenção de dados: 0 de 3' }).click();
+  await page.getByRole('button', { name: /^Filtrar Retenção de dados: 0 de 3\./ }).click();
   await expect(page.getByLabel('Filtrar categoria dos trechos')).toHaveValue('Data Retention');
   await expect(page.getByRole('table')).toContainText('0 / 3');
   await page.getByLabel('Filtrar categoria dos trechos').selectOption('all');
@@ -220,7 +220,7 @@ test('nota zero, nota ausente e trecho truncado são distintos', async ({ page }
   const table = page.getByRole('table');
   await expect(table.getByRole('row').nth(1)).toContainText('Sem nota');
   await expect(table.getByRole('row').nth(5)).toContainText('0 / 3');
-  await expect(page.getByRole('button', { name: 'Filtrar Outros temas: sem nota' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Filtrar Outros temas: Fora da pontuação atual\./ })).toBeVisible();
   await expect(page.getByRole('img')).not.toHaveAccessibleDescription(/Outros temas: 0/);
 });
 
