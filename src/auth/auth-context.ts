@@ -1,6 +1,7 @@
+/** Compartilha a sessão e as ações de autenticação entre os componentes. */
 import { createContext, useContext } from 'react';
-export type User = { id: string; name: string; email: string; role: 'ADMIN' | 'EVALUATOR' };
-export type Session = { user: User; expires_at: string };
+export type User = { id: string; name: string; email: string; role: 'ADMIN' | 'EVALUATOR'; };
+export type Session = { user: User; expires_at: string; };
 export type AuthState = {
   session: Session | null;
   loading: boolean;
@@ -12,6 +13,7 @@ export type AuthState = {
   logout: () => Promise<void>;
 };
 export const AuthContext = createContext<AuthState | null>(null);
+/** Retorna a sessão do provedor atual; falha se usado fora dele. */
 export function useAuth() {
   const value = useContext(AuthContext);
   if (!value) throw new Error('AuthProvider ausente.');

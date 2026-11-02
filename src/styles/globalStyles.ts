@@ -1,3 +1,4 @@
+/** Define os estilos de globalStyles usados pela interface. */
 import { createGlobalStyle } from 'styled-components';
 import theme from './theme';
 export default createGlobalStyle`

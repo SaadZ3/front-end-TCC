@@ -1,3 +1,4 @@
+/** Inicializa o React e conecta navegação, sessão e estilos globais. */
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
@@ -6,7 +7,12 @@ import { AuthProvider } from './auth/AuthProvider';
 import MyGlobalStyles from './styles/globalStyles';
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode><BrowserRouter><AuthProvider>
-    <MyGlobalStyles /><App />
-  </AuthProvider></BrowserRouter></StrictMode>,
+  <StrictMode>
+    <BrowserRouter>
+      <AuthProvider>
+        <MyGlobalStyles />
+        <App />
+      </AuthProvider>
+    </BrowserRouter>
+  </StrictMode>,
 );

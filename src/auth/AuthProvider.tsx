@@ -1,19 +1,22 @@
+/** Mantém a sessão da interface e impede que respostas atrasadas restaurem uma sessão encerrada. */
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { ApiError, api } from '../services/api';
 import { AuthContext, type Session } from './auth-context';
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+/** Recebe os componentes filhos e fornece sessão e ações de autenticação. */
+export function AuthProvider({ children }: { children: ReactNode; }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expired, setExpired] = useState(false);
-  const generation = useRef(0);
+  // Uma resposta antiga não pode restaurar a sessão após logout ou expiração.
+  const sessionRequestVersion = useRef(0);
   const hadSession = useRef(false);
-  const mutationPending = useRef(false);
-  const invalidatePending = useCallback(() => { generation.current++; }, []);
+  const sessionChangePending = useRef(false);
+  const invalidatePendingRequests = useCallback(() => { sessionRequestVersion.current++; }, []);
 
   const expire = useCallback(() => {
-    generation.current++;
+    sessionRequestVersion.current++;
     setExpired(hadSession.current);
     hadSession.current = false;
     setSession(null);
@@ -22,26 +25,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loadSession = useCallback(async () => {
-    if (mutationPending.current) return;
-    const request = ++generation.current;
+    if (sessionChangePending.current) return;
+    const requestVersion = ++sessionRequestVersion.current;
     try {
       const next = await api<Session>('/users/me');
-      if (request !== generation.current) return;
+      if (requestVersion !== sessionRequestVersion.current) return;
       hadSession.current = true;
       setSession(next);
       setExpired(false);
       setError(null);
     } catch (failure) {
-      if (request !== generation.current) return;
+      if (requestVersion !== sessionRequestVersion.current) return;
       if (failure instanceof ApiError && failure.status === 401) expire();
       else setError(failure instanceof Error ? failure.message : 'Não foi possível verificar sua sessão.');
     } finally {
-      if (request === generation.current) setLoading(false);
+      if (requestVersion === sessionRequestVersion.current) setLoading(false);
     }
   }, [expire]);
 
   const refresh = useCallback(async () => {
-    if (mutationPending.current) return;
+    if (sessionChangePending.current) return;
     setLoading(true);
     setError(null);
     await loadSession();
@@ -55,11 +58,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.addEventListener('focus', onFocus);
     window.addEventListener('session-expired', expire);
     return () => {
-      invalidatePending();
+      invalidatePendingRequests();
       window.removeEventListener('focus', onFocus);
       window.removeEventListener('session-expired', expire);
     };
-  }, [loadSession, expire, invalidatePending]);
+  }, [loadSession, expire, invalidatePendingRequests]);
 
   useEffect(() => {
     if (!session) return;
@@ -67,30 +70,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(timeout);
   }, [session, expire]);
 
-  async function authenticate(path: string, credentials: { name?: string; email: string; password: string }) {
-    mutationPending.current = true;
-    const request = ++generation.current;
+  /** Recebe rota e credenciais; atualiza a sessão apenas se a resposta ainda for atual. */
+  async function authenticate(path: string, credentials: { name?: string; email: string; password: string; }) {
+    sessionChangePending.current = true;
+    const requestVersion = ++sessionRequestVersion.current;
     try {
       const next = await api<Session>(path, { method: 'POST', body: JSON.stringify(credentials) });
-      if (request !== generation.current) return;
+      if (requestVersion !== sessionRequestVersion.current) return;
       hadSession.current = true;
       setSession(next);
       setExpired(false);
       setError(null);
       setLoading(false);
     } finally {
-      mutationPending.current = false;
+      sessionChangePending.current = false;
     }
   }
+  /** Recebe e-mail e senha e conclui a entrada na conta. */
   async function login(email: string, password: string) {
     await authenticate('/auth/login', { email, password });
   }
+  /** Recebe nome, e-mail e senha e conclui o cadastro e a sessão. */
   async function register(name: string, email: string, password: string) {
     await authenticate('/auth/register', { name, email, password });
   }
+  /** Encerra a sessão no backend antes de limpar o estado local. */
   async function logout() {
-    mutationPending.current = true;
-    invalidatePending();
+    sessionChangePending.current = true;
+    invalidatePendingRequests();
     try {
       await api<void>('/auth/logout', { method: 'POST' });
       hadSession.current = false;
@@ -99,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null);
       setLoading(false);
     } finally {
-      mutationPending.current = false;
+      sessionChangePending.current = false;
     }
   }
   return <AuthContext.Provider value={{ session, loading, error, expired, refresh, login, register, logout }}>

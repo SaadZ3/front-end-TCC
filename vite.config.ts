@@ -1,7 +1,8 @@
+/** Configura o frontend local e o encaminhamento de /api ao backend. */
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// O navegador acessa /api pela mesma origem; a integração entra na P2.
+// O navegador acessa /api pela mesma origem, preservando o cookie de sessão.
 export default defineConfig({
   plugins: [react()],
   server: {

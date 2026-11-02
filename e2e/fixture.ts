@@ -1,3 +1,4 @@
+/** Fornece uma análise controlada para os testes de navegador, sem chamar o modelo. */
 import { readFileSync } from 'node:fs';
 import type { Analysis } from '../src/services/analyses';
 

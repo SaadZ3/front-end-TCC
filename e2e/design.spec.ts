@@ -1,4 +1,5 @@
-﻿import { expect, test, type Page } from '@playwright/test';
+/** Verifica navegação, acessibilidade e adaptação da interface para proteger o comportamento do TCC. */
+import { expect, test, type Page } from '@playwright/test';
 import { completedAnalysis } from './fixture';
 
 // Dados simulados permitem validar a interface sem conta ou banco reais.

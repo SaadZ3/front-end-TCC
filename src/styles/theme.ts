@@ -1,3 +1,4 @@
+/** Define cores e medidas compartilhadas pelos estilos da interface. */
 const theme = {
   colors: {
     primary: "#236751",

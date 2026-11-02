@@ -1,3 +1,4 @@
+/** Verifica orientações por trecho e posições Unicode na interface para proteger o comportamento do TCC. */
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import type { CompletedAnalysis } from '../src/pages/AnalysisResult/dashboardData';

@@ -1,3 +1,4 @@
+/** Configura navegador, endereço e execução sequencial dos testes da interface. */
 import { defineConfig } from '@playwright/test';
 
 // Teste contra front/back reais já iniciados e uma conta em banco de teste.

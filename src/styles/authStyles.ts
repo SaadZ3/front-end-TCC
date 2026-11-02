@@ -1,3 +1,4 @@
+/** Define os estilos de authStyles usados pela interface. */
 import styled from 'styled-components';
 export const Page = styled.main`
   min-height: calc(100vh - 80px); padding: 56px 24px; display: grid; align-content: center; justify-items: center; background: #f5f7f6;

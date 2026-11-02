@@ -1,4 +1,5 @@
-﻿import { expect, test } from '@playwright/test';
+/** Verifica cadastro, sessão e exclusão no histórico para proteger o comportamento do TCC. */
+import { expect, test } from '@playwright/test';
 import { completedAnalysis } from './fixture';
 
 const session = { user: { id: 'user-test', name: 'Pessoa de Teste', email: 'teste@example.test', role: 'EVALUATOR' }, expires_at: new Date(Date.now() + 3600000).toISOString() };

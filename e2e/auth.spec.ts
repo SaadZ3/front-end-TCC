@@ -1,4 +1,5 @@
-﻿import { expect, test } from '@playwright/test';
+/** Verifica autenticação, expiração e autorização das sessões para proteger o comportamento do TCC. */
+import { expect, test } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 
 const email = process.env.E2E_USER_EMAIL;

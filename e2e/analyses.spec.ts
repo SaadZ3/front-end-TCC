@@ -1,4 +1,5 @@
-﻿import { expect, test, type Page } from '@playwright/test';
+/** Verifica envio, consulta, reanálise e exclusão de documentos para proteger o comportamento do TCC. */
+import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { normalizeStoredResult } from '../../tcc-back/src/utils/scoreScale';

@@ -1,3 +1,4 @@
+/** Define os estilos de analysisStyles usados pela interface. */
 import styled from 'styled-components';
 
 export const PageHeading = styled.header.attrs({ className: 'result-heading' })`
@@ -59,7 +60,7 @@ export const HistoryList = styled.ul`
   .file-info p { margin-top: 3px; }
   @media(max-width: 700px) { li > div { grid-template-columns: minmax(0, 1fr); gap: 14px; } }
 `;
-export const Badge = styled.span<{ $status?: string }>`
+export const Badge = styled.span<{ $status?: string; }>`
   display: inline-flex; align-items: center; color: ${p => p.$status === 'failed' ? '#a13931' : p.$status === 'processing' ? '#805a16' : '#13795b'};
   background: ${p => p.$status === 'failed' ? '#fcf0ee' : p.$status === 'processing' ? '#fff5e3' : '#e3f4ed'};
   padding: 4px 9px; border-radius: 4px; font-size: 11px; font-weight: 500;

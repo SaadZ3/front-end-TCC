@@ -1,3 +1,4 @@
+/** Verifica filtros, gráficos, documentos e exportação PDF para proteger o comportamento do TCC. */
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { completedAnalysis } from './fixture';

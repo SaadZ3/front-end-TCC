@@ -1,3 +1,4 @@
+/** Verifica demonstração pública e navegação por teclado para proteger o comportamento do TCC. */
 import { expect, test } from '@playwright/test';
 
 test('demonstração troca evidências por teclado e perguntas abrem em todas as larguras', async ({ page }) => {

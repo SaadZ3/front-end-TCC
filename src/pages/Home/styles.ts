@@ -1,4 +1,5 @@
-﻿import styled from 'styled-components';
+/** Define os estilos de Home usados pela interface. */
+import styled from 'styled-components';
 
 export const LandingPage = styled.div`
   --green: #236751;

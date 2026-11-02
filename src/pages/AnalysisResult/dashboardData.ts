@@ -1,51 +1,75 @@
+/** Prepara categorias e trechos da análise para os gráficos e filtros. */
 import { labels, type Analysis, type Grade, type Segment } from '../../services/analyses';
 
-export type CompletedAnalysis = Extract<Analysis, { status: 'completed' }>;
+export type CompletedAnalysis = Extract<Analysis, { status: 'completed'; }>;
 export interface CategoryScore { id: string; label: string; title: string; score: Grade | null; }
 export interface SegmentRow { segment: Segment; index: number; categories: CategoryScore[]; }
 
 const dimensionLabels: Record<string, string> = {
-  collection: 'First Party Collection/Use', sharing: 'Third Party Sharing/Collection',
-  choice: 'User Choice/Control', access: 'User Access, Edit and Deletion',
-  retention: 'Data Retention', security: 'Data Security', changes: 'Policy Change',
+  collection: 'First Party Collection/Use',
+  sharing: 'Third Party Sharing/Collection',
+  choice: 'User Choice/Control',
+  access: 'User Access, Edit and Deletion',
+  retention: 'Data Retention',
+  security: 'Data Security',
+  changes: 'Policy Change',
 };
 const shortTitles: Record<string, string> = {
   'First Party Collection/Use': 'Coleta e uso de dados',
   'Third Party Sharing/Collection': 'Compartilhamento',
   'User Choice/Control': 'Escolhas e controle',
   'User Access, Edit and Deletion': 'Direitos dos titulares',
-  'Data Retention': 'Retenção de dados', 'Data Security': 'Segurança de dados',
-  'Policy Change': 'Alterações da política', 'Do Not Track': 'Não rastreamento',
-  'International and Specific Audiences': 'Públicos específicos', Other: 'Outros temas',
+  'Data Retention': 'Retenção de dados',
+  'Data Security': 'Segurança de dados',
+  'Policy Change': 'Alterações da política',
+  'Do Not Track': 'Não rastreamento',
+  'International and Specific Audiences': 'Públicos específicos',
+  Other: 'Outros temas',
 };
 
 export const gradeDescriptions: Record<Grade, string> = {
   0: 'Faixa inicial', 1: 'Faixa básica', 2: 'Faixa intermediária', 3: 'Faixa superior',
 };
 
+/** Recebe uma análise concluída e retorna categorias, linhas e contagens do painel. */
 export function dashboardData(analysis: CompletedAnalysis) {
   const categories: CategoryScore[] = Object.entries(labels).map(([label, title]) => {
-      const dimension = analysis.result.evaluation.dimensions.find(item => dimensionLabels[item.id] === label);
-      return { id: dimension?.id ?? label, label, title: shortTitles[label] || title, score: dimension?.score ?? null };
+    const dimension = analysis.result.evaluation.dimensions.find(item => dimensionLabels[item.id] === label);
+    return {
+      id: dimension?.id ?? label,
+      label,
+      title: shortTitles[label] || title,
+      score: dimension?.score ?? null
+    };
 
   });
   const rows: SegmentRow[] = analysis.result.segments.map((segment, index) => ({
-    segment, index,
+    segment,
+    index,
     // Uma categoria pode avaliar a política inteira; não atribuímos essa nota ao trecho.
     categories: segment.labels.map(label => categories.find(category => category.label === label) ?? {
       id: label, label, title: labels[label] ?? label, score: null,
     }),
   }));
   const identified = new Set(analysis.result.segments.flatMap(segment => segment.labels));
-  return { categories, rows, identified: categories.filter(category => identified.has(category.label)).length,
-    classified: analysis.result.segments.filter(segment => segment.labels.length > 0).length };
+  return {
+    categories,
+    rows,
+    identified: categories.filter(category => identified.has(category.label)).length,
+    classified: analysis.result.segments.filter(segment => segment.labels.length > 0).length
+  };
 }
 
+/** Normaliza espaços, acentos e caixa, preservando espaços nas extremidades. */
+function normalizeSearchText(text: string): string {
+  return text.replace(/\s+/gu, ' ').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR');
+}
+
+/** Recebe linhas e filtros; retorna os trechos correspondentes na ordem original. */
 export function filterSegments(rows: SegmentRow[], query: string, category: string, grade: string) {
-  const normalizedQuery = query.trim().replace(/\s+/gu, ' ').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR');
+  const normalizedQuery = normalizeSearchText(query.trim());
   return rows.filter(row => {
-    const text = `${row.segment.text} ${row.categories.map(item => labels[item.label] ?? item.title).join(' ')}`
-      .replace(/\s+/gu, ' ').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('pt-BR');
+    const text = normalizeSearchText(`${row.segment.text} ${row.categories.map(item => labels[item.label] ?? item.title).join(' ')}`);
     if (!text.includes(normalizedQuery)) return false;
     const selected = row.categories.filter(item => category === 'all' || item.label === category);
     if (category !== 'all' && !selected.length) return false;

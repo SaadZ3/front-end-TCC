@@ -1,5 +1,7 @@
+/** Calcula a média exibida usando as contribuições já ponderadas da avaliação. */
 import type { CompletedAnalysis } from './dashboardData';
 
+/** Recebe a avaliação e retorna a média ponderada ou null quando os dados não permitem calculá-la. */
 export function policyMean(evaluation: CompletedAnalysis['result']['evaluation']): number | null {
   if (evaluation.score === null || evaluation.score_status !== 'available') return null;
   const applicable = evaluation.dimensions.filter(dimension => dimension.status !== 'not_applicable');
@@ -13,6 +15,7 @@ export function policyMean(evaluation: CompletedAnalysis['result']['evaluation']
   return Math.min(3, applicable.reduce((sum, dimension) => sum + dimension.contribution!, 0));
 }
 
+/** Recebe uma média e retorna o texto em português com duas casas decimais. */
 export function formatPolicyMean(mean: number): string {
   return mean.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }

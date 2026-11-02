@@ -30,3 +30,6 @@ dist-ssr
 
 playwright-report/
 test-results/
+
+# Arquivos incrementais da compilação
+*.tsbuildinfo

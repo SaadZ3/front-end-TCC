@@ -1,3 +1,4 @@
+/** Verifica média ponderada, arredondamento e ausência de nota para proteger o comportamento do TCC. */
 import { expect, test } from '@playwright/test';
 import { completedAnalysis } from './fixture';
 import { formatPolicyMean, policyMean } from '../src/pages/AnalysisResult/policyMean';

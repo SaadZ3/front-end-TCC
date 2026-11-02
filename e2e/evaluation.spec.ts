@@ -1,3 +1,4 @@
+/** Verifica apresentação do método de avaliação na interface para proteger o comportamento do TCC. */
 import { expect, test, type Page } from '@playwright/test';
 import { completedAnalysis } from './fixture';
 

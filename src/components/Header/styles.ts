@@ -1,3 +1,4 @@
+/** Define os estilos de Header usados pela interface. */
 import styled from 'styled-components';
 import theme from '../../styles/theme';
 export const HeaderContainer = styled.header`background: #fff; border-bottom: 1px solid ${theme.colors.border};`;
