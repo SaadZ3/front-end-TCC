@@ -5,6 +5,7 @@ import { completedAnalysis } from './fixture';
 import type { Grade } from '../src/services/analyses';
 import type { CompletedAnalysis } from '../src/pages/AnalysisResult/dashboardData';
 import { formatPolicyMean, policyMean } from '../src/pages/AnalysisResult/policyMean';
+import { scoreBlockerMessages } from '../src/pages/AnalysisResult/scoreBlockers';
 
 const categoryLabels = ['First Party Collection/Use', 'Third Party Sharing/Collection', 'User Choice/Control',
   'User Access, Edit and Deletion', 'Data Retention', 'Data Security', 'Policy Change', 'Do Not Track',
@@ -31,6 +32,67 @@ function fixture(): CompletedAnalysis {
     labels: [categoryLabels[index % 10]], probabilities: {}, truncated: false, page_start: null, page_end: null }));
   return data;
 }
+
+test('bloqueios de entrada explicam a causa sem gerar média parcial', async ({ page }) => {
+  const data = fixture();
+  data.result.evaluation.score = null;
+  data.result.evaluation.score_status = 'blocked';
+  data.result.evaluation.score_blockers = ['extraction_partial'];
+  data.result.extraction.status = 'partial';
+  data.result.extraction.warnings = ['Página 2 sem texto extraível.'];
+  await mock(page, data);
+  const panel = page.getByRole('region', { name: 'Motivos da ausência de nota global' });
+  await expect(panel).toContainText('A leitura do arquivo apresentou uma limitação');
+  await expect(page.getByLabel('Nota global da política', { exact: true })).toHaveText('Sem nota global');
+  await panel.getByText('Ver avisos da leitura do arquivo').click();
+  await expect(panel).toContainText('Página 2 sem texto extraível.');
+  const pdf = await page.evaluate(async analysis => {
+    const path = '/src/pages/AnalysisResult/exportPdf.ts';
+    return JSON.stringify((await import(/* @vite-ignore */ path)).analysisPdfDefinition(analysis));
+  }, data);
+  expect(pdf).toContain('A leitura do arquivo apresentou uma limitação');
+});
+
+test('pergunta inconclusiva mostra sua causa e evidências sem afirmar erro da política', async ({ page }) => {
+  const data = fixture();
+  data.result.evaluation.score = null;
+  data.result.evaluation.score_status = 'blocked';
+  data.result.evaluation.score_blockers = ['inconclusive_questions'];
+  const question = data.result.evaluation.dimensions[0].questions[0];
+  question.status = 'inconclusive';
+  question.rationale = 'Declarações potencialmente incompatíveis sobre os mesmos dados.';
+  question.contextual_groups = [{ ...question.supporting_groups[0], evidence: [
+    { segment_id: 'segment-0', start: 0, end: 15, quote: 'Coletamos nome.' },
+    { segment_id: 'segment-1', start: 0, end: 19, quote: 'Não coletamos nome.' },
+  ] }];
+  await mock(page, data);
+  const panel = page.getByRole('region', { name: 'Motivos da ausência de nota global' });
+  await expect(panel).toContainText(question.title);
+  await expect(panel).toContainText('não significa que a política esteja necessariamente errada');
+  await panel.getByText('Ver critérios e passagens que precisam de revisão').click();
+  await expect(panel.getByRole('blockquote')).toHaveCount(2);
+  await expect(panel).toContainText('Não coletamos nome.');
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: 'test-results/r1-blockers-mobile.png', fullPage: true });
+});
+
+test('média inválida tem diagnóstico próprio e nota zero continua disponível', () => {
+  const data = fixture();
+  data.result.evaluation.dimensions[0].contribution = null;
+  expect(policyMean(data.result.evaluation)).toBeNull();
+  expect(scoreBlockerMessages(data.result).join(' ')).toContain('não permitem conferir a média');
+  data.result.evaluation.score = 0;
+  for (const dimension of data.result.evaluation.dimensions) dimension.contribution = 0;
+  expect(policyMean(data.result.evaluation)).toBe(0);
+  expect(scoreBlockerMessages(data.result)).toEqual([]);
+  for (const code of ['document_scope_incomplete', 'truncated_segments', 'no_usable_segments', 'unknown_applicability', 'no_applicable_questions', 'future_blocker']) {
+    data.result.evaluation.score = null;
+    data.result.evaluation.score_blockers = [code];
+    expect(scoreBlockerMessages(data.result)).toHaveLength(1);
+    expect(scoreBlockerMessages(data.result)[0]).not.toContain(code);
+  }
+});
 
 async function mock(page: Page, data = fixture()) {
   await page.route('**/api/**', route => {

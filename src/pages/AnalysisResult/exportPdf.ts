@@ -1,5 +1,6 @@
 /** Monta o relatório PDF da análise e carrega a biblioteca apenas ao exportar. */
 import { formatPolicyMean, policyMean } from './policyMean';
+import { scoreBlockerMessages } from './scoreBlockers';
 import type { Content, TDocumentDefinitions, TableCell } from 'pdfmake/interfaces';
 import { date, labels, scopeNames, type Grade } from '../../services/analyses';
 import { dashboardData, gradeDescriptions, type SegmentRow, type CompletedAnalysis } from './dashboardData';
@@ -97,8 +98,7 @@ export function analysisPdfDefinition(analysis: CompletedAnalysis): TDocumentDef
     },
   ];
   const limitations = [...extraction.warnings, ...evaluation.limitations];
-  if (evaluation.score === null) limitations.unshift('O conteúdo disponível não permite concluir a avaliação global.');
-  if (evaluation.score_blockers.length) limitations.push('Impedimentos registrados: ' + evaluation.score_blockers.join(', '));
+  limitations.unshift(...scoreBlockerMessages(analysis.result));
   if (limitations.length) content.push(heading('Limitações e avisos'), { ul: [...new Set(limitations)] });
   content.push(heading(`Trechos analisados (${rows.length})`),
     {

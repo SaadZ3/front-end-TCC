@@ -358,6 +358,23 @@ export const WorkspaceFrame = styled.div`
     color: #006a70;
     font-size: 11px;
   }
+  .score-blockers {
+    padding: 20px;
+    margin: 12px 0 20px;
+    overflow-wrap: anywhere;
+  }
+  .score-blockers h2 { font-size: 16px; margin-bottom: 12px; }
+  .score-blockers h3 { font-size: 14px; margin: 16px 0 8px; }
+  .score-blockers ul { padding-left: 20px; }
+  .score-blockers li + li { margin-top: 8px; }
+  .score-blockers summary { cursor: pointer; margin-top: 12px; }
+  .score-blockers blockquote {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-left: 3px solid #b9cdbf;
+    background: #f6f8fa;
+    white-space: pre-wrap;
+  }
   .result-notice svg {
     flex-shrink: 0;
     margin-top: 1px;

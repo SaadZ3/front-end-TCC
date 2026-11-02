@@ -1,5 +1,6 @@
 /** Organiza indicadores, trechos e documentos nas abas do resultado. */
 import { formatPolicyMean, policyMean } from './policyMean';
+import { scoreBlockerMessages } from './scoreBlockers';
 import { useMemo, useState, type KeyboardEvent } from 'react';
 import { Link } from 'react-router';
 import Icon from '../../components/Icon';
@@ -21,7 +22,9 @@ export default function ResultDashboard({ analysis, query, onQuery, tab, onTab, 
   const evaluation = analysis.result.evaluation;
   const mean = policyMean(evaluation);
   const guidance = useMemo(() => recommendationData(analysis.result), [analysis.result]);
-  const partial = evaluation.score === null;
+  const partial = mean === null;
+  const blockers = scoreBlockerMessages(analysis.result);
+  const pendingQuestions = evaluation.dimensions.flatMap(d => d.questions.filter(q => q.status === 'inconclusive'));
   /** Recebe a categoria selecionada e atualiza o filtro de trechos. */
   function selectCategory(value: string) {
     setCategory(value);
@@ -46,6 +49,23 @@ export default function ResultDashboard({ analysis, query, onQuery, tab, onTab, 
         {partial ? 'As notas locais disponíveis se referem ao texto analisado. O conteúdo disponível não permite concluir a avaliação global.' : 'As notas de 0 a 3 descrevem as informações encontradas na política. O resultado ainda não foi validado por uma pessoa.'}
       </p>
     </div>
+    {partial && <section className="result-panel score-blockers" aria-label="Motivos da ausência de nota global">
+      <h2>Por que esta análise está sem nota global?</h2>
+      <ul>{blockers.map(message => <li key={message}>{message}</li>)}</ul>
+      {evaluation.score_blockers.includes('extraction_partial') && analysis.result.extraction.warnings.length > 0 &&
+        <details><summary>Ver avisos da leitura do arquivo</summary>
+          <ul>{analysis.result.extraction.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul>
+        </details>}
+      {pendingQuestions.length > 0 && <details>
+        <summary>Ver critérios e passagens que precisam de revisão</summary>
+        {pendingQuestions.map(question => <div key={question.id}>
+          <h3>{question.title}</h3>
+          <p>{question.rationale}</p>
+          {[...new Set(question.contextual_groups.flatMap(group => group.evidence.map(evidence => evidence.quote)))]
+            .map(quote => <blockquote key={quote}>{quote}</blockquote>)}
+        </div>)}
+      </details>}
+    </section>}
     <div className="result-tabs" role="tablist" aria-label="Conteúdo do resultado" onKeyDown={tabsKeyboard}>
       <button id="tab-overview" role="tab" aria-selected={tab === 'overview'} aria-controls="panel-overview" tabIndex={tab === 'overview' ? 0 : -1} onClick={() => onTab('overview')}>
         <Icon name="grid" size={14} />Visão geral e indicadores</button>
