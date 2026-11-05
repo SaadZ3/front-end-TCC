@@ -4,7 +4,7 @@ import { scoreBlockerMessages } from './scoreBlockers';
 import type { Content, TDocumentDefinitions, TableCell } from 'pdfmake/interfaces';
 import { date, labels, scopeNames, type Grade } from '../../services/analyses';
 import { categoryDetectionText, categoryScoreText, dashboardData, gradeDescriptions, type SegmentRow, type CompletedAnalysis } from './dashboardData';
-import { formatGrade, questionPoints, scaleExplanation } from './scoreExplanation';
+import { formatGrade, questionPoints, scaleExplanation, coverageExplanation } from './scoreExplanation';
 import { findingObservation } from './recommendationData';
 
 const heading = (text: string): Content => ({ text, headlineLevel: 1, style: 'heading', margin: [0, 18, 0, 8] });
@@ -116,10 +116,13 @@ export function analysisPdfDefinition(analysis: CompletedAnalysis): TDocumentDef
       style: 'muted'
     },
   ];
+  const excludesUncertain = evaluation.uncertainty_policy === 'exclude_inconclusive_evidence_v1';
+  const coverage = coverageExplanation(evaluation);
+  if (coverage) content.push(heading('Cobertura da nota'), { text: coverage });
   content.push(heading('Memória de cálculo'));
   for (const dimension of evaluation.dimensions) content.push(
     { text: `${dimension.title}: ${dimension.score === null ? 'Sem nota' : `${formatGrade(dimension.score)} / 3`}`, bold: true, margin: [0, 6, 0, 3] },
-    { text: `${formatGrade(dimension.earned_points)} de ${dimension.applicable_questions} pontos; peso ${formatGrade(100 * (dimension.normalized_weight ?? 0))}%.${dimension.inconclusive_questions ? ' Há pergunta inconclusiva; não é uma nota completa.' : ''}` },
+    { text: `${formatGrade(dimension.earned_points)} de ${excludesUncertain ? dimension.resolved_questions : dimension.applicable_questions} pontos; peso ${formatGrade(100 * (dimension.normalized_weight ?? 0))}%.${dimension.inconclusive_questions ? (excludesUncertain ? ` ${dimension.excluded_questions} pergunta(s) inconclusiva(s) fora do cálculo.${dimension.score === null ? ' Categoria fora da média.' : ''}` : ' Há pergunta inconclusiva; não é uma nota completa.') : ''}` },
     { ul: dimension.questions.map(questionPoints) },
   );
   const limitations = [...extraction.warnings, ...evaluation.limitations];

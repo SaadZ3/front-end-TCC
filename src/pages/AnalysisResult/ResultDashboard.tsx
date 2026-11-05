@@ -10,7 +10,7 @@ import SegmentsTable from './SegmentsTable';
 import { dashboardData, gradeDescriptions, type CompletedAnalysis } from './dashboardData';
 import { recommendationData } from './recommendationData';
 import { GeneralRecommendations } from './SegmentRecommendations';
-import { formatGrade, questionPoints, scaleExplanation } from './scoreExplanation';
+import { formatGrade, questionPoints, scaleExplanation, coverageExplanation } from './scoreExplanation';
 
 export type ResultTab = 'overview' | 'documents';
 /** Recebe análise e controles da tela e retorna as abas do resultado. */
@@ -22,6 +22,8 @@ export default function ResultDashboard({ analysis, query, onQuery, tab, onTab, 
   const [category, setCategory] = useState('all');
   const evaluation = analysis.result.evaluation;
   const mean = policyMean(evaluation);
+  const excludesUncertain = evaluation.uncertainty_policy === 'exclude_inconclusive_evidence_v1';
+  const coverage = coverageExplanation(evaluation);
   const guidance = useMemo(() => recommendationData(analysis.result), [analysis.result]);
   const partial = mean === null;
   const blockers = scoreBlockerMessages(analysis.result);
@@ -130,6 +132,7 @@ export default function ResultDashboard({ analysis, query, onQuery, tab, onTab, 
           <p>Categorias com ao menos um trecho</p>
         </section>
       </div>
+      {coverage && <div className="result-notice warning" role="note" aria-label="Cobertura da nota"><p>{coverage}</p></div>}
       <CategoryCharts categories={categories} selected={category} onSelect={selectCategory} />
       <details className="result-panel score-calculation" aria-label="Memória de cálculo das notas">
         <summary>Como as notas foram calculadas</summary>
@@ -137,13 +140,19 @@ export default function ResultDashboard({ analysis, query, onQuery, tab, onTab, 
         <p>Método: {evaluation.method_version}. Nota zero indica o resultado dos critérios, não “não se aplica”.</p>
         {evaluation.dimensions.map(dimension => <section key={dimension.id}>
           <h3>{dimension.title}: {dimension.score === null ? 'Sem nota' : `${formatGrade(dimension.score)} / 3`}</h3>
-          <p>{formatGrade(dimension.earned_points)} de {dimension.applicable_questions} pontos possíveis.
+          <p>{formatGrade(dimension.earned_points)} de {excludesUncertain ? dimension.resolved_questions : dimension.applicable_questions} pontos possíveis.
             {' '}Peso na média: {formatGrade(100 * (dimension.normalized_weight ?? 0))}%.
-            {dimension.inconclusive_questions > 0 && ' Há pergunta sem conclusão; os pontos disponíveis não são uma nota completa.'}</p>
+            {dimension.inconclusive_questions > 0 && (excludesUncertain
+              ? ` ${dimension.excluded_questions} pergunta(s) inconclusiva(s) fora do cálculo.${dimension.score === null ? ' Categoria fora da média.' : ' Nota baseada nas perguntas restantes.'}`
+              : ' Há pergunta sem conclusão; os pontos disponíveis não são uma nota completa.')}</p>
           <ul>{dimension.questions.map(question => <li key={question.id}>
             {questionPoints(question)}
-            {[...new Set([...question.supporting_groups, ...question.contextual_groups].flatMap(group => group.evidence.map(evidence => evidence.quote)))]
+            {[...new Set([...question.supporting_groups, ...(excludesUncertain ? [] : question.contextual_groups)].flatMap(group => group.evidence.map(evidence => evidence.quote)))]
               .map(quote => <blockquote key={quote}>{quote}</blockquote>)}
+            {excludesUncertain && question.contextual_groups.length > 0 && <details>
+              <summary>Passagens com dúvida desconsideradas nesta pergunta</summary>
+              {[...new Set(question.contextual_groups.flatMap(g => g.evidence.map(e => e.quote)))].map(quote => <blockquote key={quote}>{quote}</blockquote>)}
+            </details>}
           </li>)}</ul>
         </section>)}
       </details>

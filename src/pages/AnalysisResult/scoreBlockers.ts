@@ -24,6 +24,8 @@ export function scoreBlockerMessages(result: CompletedAnalysis['result']): strin
         return ['A aplicabilidade de critérios está pendente. Resolva essa informação antes de emitir uma nota geral.'];
       case 'no_applicable_questions':
         return ['Não há critérios aplicáveis para calcular uma nota geral neste resultado.'];
+      case 'no_evaluable_questions':
+        return ['Todas as perguntas ficaram inconclusivas. Nenhuma categoria possui uma base avaliável para calcular a média. As passagens foram preservadas para revisão.'];
       default:
         return ['Há um impedimento que esta interface não reconhece. Exporte o JSON para revisão do resultado.'];
     }

@@ -4,7 +4,10 @@ import type { CompletedAnalysis } from './dashboardData';
 /** Recebe a avaliação e retorna a média ponderada ou null quando os dados não permitem calculá-la. */
 export function policyMean(evaluation: CompletedAnalysis['result']['evaluation']): number | null {
   if (evaluation.score === null || evaluation.score_status !== 'available') return null;
-  const applicable = evaluation.dimensions.filter(dimension => dimension.status !== 'not_applicable');
+  const excludes = evaluation.uncertainty_policy === 'exclude_inconclusive_evidence_v1';
+  if (excludes && evaluation.dimensions.some(d => d.status === 'unresolved' &&
+    (d.score !== null || d.contribution !== null || d.normalized_weight !== 0))) return null;
+  const applicable = evaluation.dimensions.filter(dimension => excludes ? dimension.status === 'resolved' : dimension.status !== 'not_applicable');
   if (!applicable.length || applicable.some(dimension => dimension.status !== 'resolved'
     || dimension.contribution === null || !Number.isFinite(dimension.contribution) || dimension.contribution < 0
     || dimension.normalized_weight === null || !Number.isFinite(dimension.normalized_weight)
