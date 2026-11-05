@@ -10,6 +10,7 @@ import SegmentsTable from './SegmentsTable';
 import { dashboardData, gradeDescriptions, type CompletedAnalysis } from './dashboardData';
 import { recommendationData } from './recommendationData';
 import { GeneralRecommendations } from './SegmentRecommendations';
+import { formatGrade, questionPoints, scaleExplanation } from './scoreExplanation';
 
 export type ResultTab = 'overview' | 'documents';
 /** Recebe análise e controles da tela e retorna as abas do resultado. */
@@ -130,9 +131,25 @@ export default function ResultDashboard({ analysis, query, onQuery, tab, onTab, 
         </section>
       </div>
       <CategoryCharts categories={categories} selected={category} onSelect={selectCategory} />
+      <details className="result-panel score-calculation" aria-label="Memória de cálculo das notas">
+        <summary>Como as notas foram calculadas</summary>
+        <p>{scaleExplanation(evaluation)}</p>
+        <p>Método: {evaluation.method_version}. Nota zero indica o resultado dos critérios, não “não se aplica”.</p>
+        {evaluation.dimensions.map(dimension => <section key={dimension.id}>
+          <h3>{dimension.title}: {dimension.score === null ? 'Sem nota' : `${formatGrade(dimension.score)} / 3`}</h3>
+          <p>{formatGrade(dimension.earned_points)} de {dimension.applicable_questions} pontos possíveis.
+            {' '}Peso na média: {formatGrade(100 * (dimension.normalized_weight ?? 0))}%.
+            {dimension.inconclusive_questions > 0 && ' Há pergunta sem conclusão; os pontos disponíveis não são uma nota completa.'}</p>
+          <ul>{dimension.questions.map(question => <li key={question.id}>
+            {questionPoints(question)}
+            {[...new Set([...question.supporting_groups, ...question.contextual_groups].flatMap(group => group.evidence.map(evidence => evidence.quote)))]
+              .map(quote => <blockquote key={quote}>{quote}</blockquote>)}
+          </li>)}</ul>
+        </section>)}
+      </details>
       <SegmentsTable key={category} rows={rows} categories={categories} query={query} onQuery={onQuery} category={category} onCategory={setCategory} guidance={guidance.bySegment} partial={analysis.result.extraction.status !== 'ok'} />
       <GeneralRecommendations items={guidance.general} partial={analysis.result.extraction.status !== 'ok'} />
-      <div className="grade-legend" aria-label="Escala de avaliação">
+      {evaluation.score_scale === 'ordinal_0_3' && <div className="grade-legend" aria-label="Escala de avaliação">
         <strong>Escala de avaliação</strong>
         {([0, 1, 2, 3] as Grade[]).map(grade => <span key={grade}>
           <b className="grade-badge" data-grade={grade}>
@@ -140,7 +157,7 @@ export default function ResultDashboard({ analysis, query, onQuery, tab, onTab, 
           </b>
           {gradeDescriptions[grade]}
         </span>)}
-      </div>
+      </div>}
       <p className="result-footnote">A nota avalia a informação documentada; não representa um percentual de conformidade legal. Na tabela, a nota é da categoria na política, não uma nota individual do trecho.</p>
     </div>
     <div id="panel-documents" role="tabpanel" aria-labelledby="tab-documents" hidden={tab !== 'documents'}>
@@ -163,7 +180,7 @@ export default function ResultDashboard({ analysis, query, onQuery, tab, onTab, 
           </div>
           <div>
             <dt>Método de avaliação</dt>
-            <dd>Qualidade da informação documentada · Escala de 0 a 3</dd>
+            <dd>Qualidade da informação documentada · {evaluation.score_scale === 'continuous_0_3' ? 'Notas contínuas' : 'Faixas históricas'} de 0 a 3 · {evaluation.method_version}</dd>
           </div>
         </dl>
         <p>

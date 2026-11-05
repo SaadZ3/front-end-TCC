@@ -2,7 +2,7 @@
 import { api } from './api';
 
 export type Scope = 'full_document' | 'excerpt' | 'unknown';
-export type Grade = 0 | 1 | 2 | 3;
+export type Grade = number;
 export interface Evidence { segment_id: string; quote: string; start: number; end: number; }
 export interface Segment {
   segment_id: string;
@@ -118,7 +118,7 @@ export interface Result {
   extraction: { status: 'ok' | 'partial'; warnings: string[]; page_count?: number | null; };
   segments: Segment[];
   evaluation: {
-    score_scale: 'ordinal_0_3'; score_conversion?: 'percentage_to_ordinal_v1';
+    score_scale: 'ordinal_0_3' | 'continuous_0_3'; score_conversion?: 'percentage_to_ordinal_v1';
     schema_version: 2; policy_id: string; language: 'pt'; index: 'documentary_information_quality';
     method_version: string; profile_id: 'core-14-v1'; profile_sha256: string; validation_status: 'not_human_validated';
     input_status: 'complete_input' | 'partial_input' | 'no_usable_segments'; score_status: 'available' | 'blocked';

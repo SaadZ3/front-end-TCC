@@ -1,5 +1,7 @@
 # Frontend do protótipo
 
+**R7/R8:** notas, detalhes, recomendações e exportação conferidos localmente. A publicação da revisão está suspensa pelas falhas de reconhecimento da [R7](../docs/R7_REVALIDACAO_NOTAS.md). Ver [entrega e limites da R8](../docs/R8_CONSOLIDACAO_ENTREGA.md).
+
 Publicação na Vercel: siga [VERCEL.md](VERCEL.md). O `vercel.json` encaminha `/api` ao backend do Railway e permite abrir ou recarregar as rotas do React diretamente.
 
 O projeto usa um único método de avaliação da qualidade da informação documentada, com notas de **0 a 3**. Consulte [a atualização do método](../docs/AVALIACAO_UNIFICADA.md).

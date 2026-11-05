@@ -1,7 +1,7 @@
 /** Apresenta as notas das categorias em barras e radar. */
 import { useId } from 'react';
 import Icon from '../../components/Icon';
-import { number } from '../../services/analyses';
+import { formatGrade as number } from './scoreExplanation';
 import { categoryDetectionText, categoryScoreText, type CategoryScore } from './dashboardData';
 
 /** Recebe o rótulo e devolve linhas curtas para sua apresentação no gráfico. */
@@ -32,7 +32,7 @@ function Radar({ categories }: { categories: CategoryScore[]; }) {
     <svg className="radar-chart" viewBox="0 0 400 326" role="img" aria-labelledby={`${titleId} ${descriptionId}`}>
       <title id={titleId}>Perfil da política — notas de 0 a 3</title>
       <desc id={descriptionId}>
-        {scored.map(category => `${category.title}: ${category.score} de 3`).join('; ')}. Categorias sem nota não são representadas.</desc>
+        {scored.map(category => `${category.title}: ${number(category.score!)} de 3`).join('; ')}. Categorias sem nota não são representadas.</desc>
       {[1, 2, 3].map(level => <polygon key={level} points={polygon(level)} fill="none" stroke="#dce6f2" strokeWidth=".85" />)}
       {scored.map((category, index) => {
         const [x, y] = point(index, 3);
@@ -55,7 +55,7 @@ function Radar({ categories }: { categories: CategoryScore[]; }) {
         const [x, y] = point(index, category.score!);
         return <circle key={category.label} cx={x} cy={y} r="2.8" fill="#087858" stroke="white" strokeWidth="1.2">
           <title>
-            {category.title}: {category.score} / 3</title>
+            {category.title}: {number(category.score!)} / 3</title>
         </circle>;
       })}
     </svg>

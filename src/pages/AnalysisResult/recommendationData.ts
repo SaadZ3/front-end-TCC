@@ -17,8 +17,8 @@ export interface Complement {
 export interface SegmentGuidance { items: Guidance[]; complements: Complement[]; }
 
 const elementNames: Record<string, string> = {
-  collection_practice: 'como ocorre a coleta',
-  identifiable_data_type: 'quais dados são coletados',
+  collection_practice: 'como ocorre a coleta ou o uso',
+  identifiable_data_type: 'quais dados são coletados ou usados',
   collected_data_type: 'quais dados são usados',
   specific_purpose: 'finalidade específica',
   sharing_practice: 'como ocorre o compartilhamento',
@@ -45,6 +45,15 @@ const elementNames: Record<string, string> = {
   policy_change_notice: 'aviso da alteração',
   timing_and_event: 'momento e evento do aviso',
 };
+
+/** Usa a mesma explicação dos elementos faltantes na tela e na exportação. */
+export function findingObservation(finding: Finding, question?: Question): string {
+  if (finding.kind !== 'information_gap' || !question) return finding.rationale;
+  if (question.status === 'not_detected') return `Não foi localizada informação suficiente para avaliar: ${question.title.toLocaleLowerCase('pt-BR')}.`;
+  const missing = question.missing_elements.map(key => elementNames[key]).filter(Boolean);
+  return missing.length ? `Informação parcial. Falta esclarecer: ${missing.join('; ')}.`
+    : 'Informação parcial: confira o contexto e os elementos necessários para responder à pergunta.';
+}
 
 /** Recebe o resultado e retorna orientações por trecho e orientações gerais. */
 export function recommendationData(result: Result) {
@@ -76,13 +85,7 @@ export function recommendationData(result: Result) {
 
   /** Devolve as observações dos achados, sem duplicar textos nem inventar elementos ausentes. */
   function observationsFor(linked: Finding[]): string[] {
-    return [...new Set(linked.map(f => {
-      const q = questions.get(f.question_id ?? '');
-      if (f.kind !== 'information_gap' || !q) return f.rationale;
-      if (q.status === 'not_detected') return `Não foi localizada informação suficiente para avaliar: ${q.title.toLocaleLowerCase('pt-BR')}.`;
-      const missing = q.missing_elements.map(key => elementNames[key]).filter(Boolean);
-      return missing.length ? `Informação parcial. Falta esclarecer: ${missing.join('; ')}.` : 'Informação parcial: confira o contexto e os elementos necessários para responder à pergunta.';
-    }))];
+    return [...new Set(linked.map(f => findingObservation(f, questions.get(f.question_id ?? ''))))];
   }
 
   const seen = new Set<string>();

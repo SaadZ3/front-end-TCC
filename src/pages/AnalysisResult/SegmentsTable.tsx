@@ -5,11 +5,12 @@ import { labels, type Grade } from '../../services/analyses';
 import { categoryScoreText, filterSegments, gradeDescriptions, type CategoryScore, type SegmentRow } from './dashboardData';
 import SegmentRecommendations, { HighlightedText } from './SegmentRecommendations';
 import type { SegmentGuidance } from './recommendationData';
+import { formatGrade } from './scoreExplanation';
 
 /** Recebe a nota e seu estado e retorna o indicador visual correspondente. */
 export function GradeBadge({ grade }: { grade: Grade | null; }) {
   return <span className="grade-badge" data-grade={grade ?? 'none'}>
-    {grade === null ? 'Sem nota' : `${grade} / 3`}
+    {grade === null ? 'Sem nota' : `${formatGrade(grade)} / 3`}
   </span>;
 }
 
@@ -68,7 +69,8 @@ function PaginatedRows({ rows, guidance, partial }: { rows: SegmentRow[]; guidan
                   return <div key={category.label} title={`Nota de ${category.title} na política`}>
                     <GradeBadge grade={grade} />
                     <span className="grade-description">
-                      {segment.truncated ? 'Trecho excluído do cálculo' : grade === null ? categoryScoreText(category) : gradeDescriptions[grade]}
+                      {segment.truncated ? 'Trecho excluído do cálculo' : grade === null ? categoryScoreText(category)
+                        : category.scale === 'continuous_0_3' ? 'Atendimento aos critérios documentais' : gradeDescriptions[grade]}
                     </span>
                   </div>;
                 }) : <GradeBadge grade={null} />}
@@ -130,7 +132,7 @@ export default function SegmentsTable({ rows, categories, query, onQuery, catego
         </select>
         <select aria-label="Filtrar nota da categoria" value={grade} onChange={event => setGrade(event.target.value)}>
           <option value="all">Todas as notas</option>
-          {[0, 1, 2, 3].map(value => <option key={value} value={value}>Nota {value}
+          {[...new Set(categories.flatMap(item => item.score === null ? [] : [item.score]))].sort((a, b) => a - b).map(value => <option key={value} value={value}>Nota {formatGrade(value)}
           </option>)}
           <option value="none">Sem nota (todos os motivos)</option>
           <option value="not_scored">Fora da pontuação atual</option>

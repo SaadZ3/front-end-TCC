@@ -1,11 +1,13 @@
 /** Prepara categorias e trechos da análise para os gráficos e filtros. */
 import { labels, type Analysis, type Grade, type Segment } from '../../services/analyses';
+import { formatGrade } from './scoreExplanation';
 
 export type CompletedAnalysis = Extract<Analysis, { status: 'completed'; }>;
 export type CategoryScoreStatus = 'scored' | 'not_scored' | 'inconclusive' | 'not_applicable' | 'unavailable';
 export interface CategoryScore {
   id: string; label: string; title: string; score: Grade | null;
   segmentCount: number; scoreStatus: CategoryScoreStatus;
+  scale?: 'ordinal_0_3' | 'continuous_0_3';
 }
 export interface SegmentRow { segment: Segment; index: number; categories: CategoryScore[]; }
 
@@ -41,7 +43,7 @@ export function categoryDetectionText(category: CategoryScore): string {
 }
 
 export function categoryScoreText(category: CategoryScore): string {
-  if (category.score !== null) return `${category.score} / 3`;
+  if (category.score !== null) return `${formatGrade(category.score)} / 3`;
   switch (category.scoreStatus) {
     case 'not_scored': return 'Fora da pontuação atual';
     case 'inconclusive': return 'Avaliação inconclusiva';
@@ -60,6 +62,7 @@ export function dashboardData(analysis: CompletedAnalysis) {
       label,
       title: shortTitles[label] || title,
       score: dimension?.score ?? null,
+      scale: analysis.result.evaluation.score_scale,
       segmentCount: analysis.result.segments.filter(segment => segment.labels.includes(label)).length,
       // A ausência de uma dimensão esperada não significa que ela está fora do método.
       scoreStatus: !dimensionId ? 'not_scored' : dimension?.score != null ? 'scored'

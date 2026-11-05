@@ -4,6 +4,8 @@ import { scoreBlockerMessages } from './scoreBlockers';
 import type { Content, TDocumentDefinitions, TableCell } from 'pdfmake/interfaces';
 import { date, labels, scopeNames, type Grade } from '../../services/analyses';
 import { categoryDetectionText, categoryScoreText, dashboardData, gradeDescriptions, type SegmentRow, type CompletedAnalysis } from './dashboardData';
+import { formatGrade, questionPoints, scaleExplanation } from './scoreExplanation';
+import { findingObservation } from './recommendationData';
 
 const heading = (text: string): Content => ({ text, headlineLevel: 1, style: 'heading', margin: [0, 18, 0, 8] });
 /** Recebe cabeçalhos, células e larguras e retorna uma tabela do relatório. */
@@ -45,13 +47,22 @@ function appendSegments(content: Content[], rows: SegmentRow[]): void {
 
 /** Monta as recomendações da avaliação, mantendo títulos, listas e espaçamento. */
 function appendRecommendations(content: Content[], evaluation: CompletedAnalysis['result']['evaluation']): void {
+  const questions = new Map(evaluation.dimensions.flatMap(d => d.questions).map(q => [q.id, q]));
   if (evaluation.recommendations.length) {
     content.push(heading('Recomendações'));
     for (const recommendation of evaluation.recommendations) {
-      content.push({ text: recommendation.what_to_do, bold: true, margin: [0, 8, 0, 4] }, { text: recommendation.trigger_reason });
+      const linked = evaluation.findings.filter(finding => recommendation.finding_ids.includes(finding.id));
+      const block: Content[] = [{ text: recommendation.what_to_do, bold: true, margin: [0, 8, 0, 4] },
+        { text: linked.length ? linked.map(f => findingObservation(f, questions.get(f.question_id ?? ''))).join('\n') : recommendation.trigger_reason }];
       // O pdfmake transforma itens de lista durante a renderização; não pode receber o estado da tela por referência.
-      if (recommendation.how_to_do.length) content.push({ ul: [...recommendation.how_to_do], margin: [0, 4, 0, 6] });
-      if (recommendation.applicability_note) content.push({ text: recommendation.applicability_note, style: 'muted' });
+      if (recommendation.how_to_do.length) block.push({ ul: [...recommendation.how_to_do], margin: [0, 4, 0, 6] });
+      block.push({ text: `Como conferir: ${recommendation.completion_evidence.join('; ')}`, style: 'muted' });
+      for (const reference of recommendation.references) block.push({
+        text: `${reference.source_type === 'public_guidance' ? 'Referência ISO — guia público' : 'Orientação do projeto'}: ${reference.title}${reference.section ? ` · ${reference.section}` : ''}${reference.edition ? ` · ${reference.edition}` : ''}${reference.url ? `\n${reference.url}` : ''}`,
+        ...(reference.url ? { link: reference.url } : {}), style: 'muted',
+      });
+      if (recommendation.applicability_note) block.push({ text: recommendation.applicability_note, style: 'muted' });
+      content.push({ stack: block, unbreakable: true });
     }
   }
 }
@@ -83,7 +94,7 @@ export function analysisPdfDefinition(analysis: CompletedAnalysis): TDocumentDef
       mean === null ? 'Sem nota global' : `${formatPolicyMean(mean)} / 3`, String(classified), `${identified} / ${categories.length}`,
     ]], ['*', '*', '*']),
     {
-      text: 'A nota média usa os critérios e seus pesos antes da classificação em faixas. As notas das categorias permanecem nas faixas de 0 a 3.',
+      text: scaleExplanation(evaluation),
       style: 'muted'
     },
     {
@@ -99,10 +110,18 @@ export function analysisPdfDefinition(analysis: CompletedAnalysis): TDocumentDef
       labels[category.label] ?? category.title, categoryDetectionText(category), categoryScoreText(category),
     ]), ['*', '*', '*']),
     {
-      text: ([0, 1, 2, 3] as Grade[]).map(score => `${score}: ${gradeDescriptions[score]}`).join('  |  '),
+      text: evaluation.score_scale === 'ordinal_0_3'
+        ? ([0, 1, 2, 3] as Grade[]).map(score => `${score}: ${gradeDescriptions[score]}`).join('  |  ')
+        : 'A nota expressa atendimento aos critérios documentais. Os pontos de atenção sobre práticas declaradas continuam válidos mesmo com nota alta.',
       style: 'muted'
     },
   ];
+  content.push(heading('Memória de cálculo'));
+  for (const dimension of evaluation.dimensions) content.push(
+    { text: `${dimension.title}: ${dimension.score === null ? 'Sem nota' : `${formatGrade(dimension.score)} / 3`}`, bold: true, margin: [0, 6, 0, 3] },
+    { text: `${formatGrade(dimension.earned_points)} de ${dimension.applicable_questions} pontos; peso ${formatGrade(100 * (dimension.normalized_weight ?? 0))}%.${dimension.inconclusive_questions ? ' Há pergunta inconclusiva; não é uma nota completa.' : ''}` },
+    { ul: dimension.questions.map(questionPoints) },
+  );
   const limitations = [...extraction.warnings, ...evaluation.limitations];
   limitations.unshift(...scoreBlockerMessages(analysis.result));
   if (limitations.length) content.push(heading('Limitações e avisos'), { ul: [...new Set(limitations)] });
@@ -116,11 +135,15 @@ export function analysisPdfDefinition(analysis: CompletedAnalysis): TDocumentDef
   appendSegments(content, rows);
   if (evaluation.findings.length) {
     content.push(heading('Achados da avaliação'));
-    for (const finding of evaluation.findings) content.push({ text: finding.title, bold: true, margin: [0, 8, 0, 4] }, { text: finding.rationale });
+    const questions = new Map(evaluation.dimensions.flatMap(d => d.questions).map(q => [q.id, q]));
+    for (const finding of evaluation.findings) content.push({ unbreakable: true, stack: [
+      { text: finding.title, bold: true, margin: [0, 8, 0, 4] },
+      { text: findingObservation(finding, questions.get(finding.question_id ?? '')) },
+    ] });
   }
   appendRecommendations(content, evaluation);
   content.push(heading('Método e rastreabilidade'), {
-    text: `Método: ${evaluation.method_version}\nPerfil: ${analysis.profile_id}\nModelo: ${analysis.versions.model}\nRegras: ${evaluation.rules_version}\nEscala: 0 a 3`,
+    text: `Método: ${evaluation.method_version}\nPerfil: ${analysis.profile_id}\nModelo: ${analysis.versions.model}\nRegras: ${evaluation.rules_version}\nEscala: ${evaluation.score_scale}`,
     style: 'muted'
   });
   return {
