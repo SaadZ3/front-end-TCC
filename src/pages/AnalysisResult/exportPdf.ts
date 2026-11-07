@@ -1,4 +1,5 @@
 /** Monta o relatório PDF da análise e carrega a biblioteca apenas ao exportar. */
+import { meanTitle, selectionDescription } from '../../services/assessmentScope';
 import { formatPolicyMean, policyMean } from './policyMean';
 import { scoreBlockerMessages } from './scoreBlockers';
 import type { Content, TDocumentDefinitions, TableCell } from 'pdfmake/interfaces';
@@ -69,7 +70,7 @@ function appendRecommendations(content: Content[], evaluation: CompletedAnalysis
 
 /** Recebe uma análise concluída e retorna a definição completa do relatório A4. */
 export function analysisPdfDefinition(analysis: CompletedAnalysis): TDocumentDefinitions {
-  const { categories, rows, classified, identified } = dashboardData(analysis);
+  const { categories, chartCategories, rows, classified, identified } = dashboardData(analysis);
   const { evaluation, extraction } = analysis.result;
   const mean = policyMean(evaluation);
   const content: Content[] = [
@@ -84,13 +85,14 @@ export function analysisPdfDefinition(analysis: CompletedAnalysis): TDocumentDef
       text: `Análise: ${analysis.analysis_id}\nEnviada em: ${date(analysis.created_at)}\nConteúdo: ${scopeNames[analysis.result.document_scope]}`,
       style: 'muted'
     },
+    ...(evaluation.assessment_scope ? [{text: selectionDescription(evaluation.assessment_scope), margin: [0, 8, 0, 8]} as Content] : []),
     {
       text: 'Análise automática, ainda não validada por uma pessoa. A nota avalia a informação documentada e não representa um percentual de conformidade legal.',
       margin: [0, 14, 0, 8],
       color: '#43594c'
     },
     heading('Indicadores'),
-    table(['Nota média da política', 'Trechos classificados', 'Categorias identificadas'], [[
+    table([meanTitle(evaluation.assessment_scope), 'Trechos classificados', 'Categorias identificadas'], [[
       mean === null ? 'Sem nota global' : `${formatPolicyMean(mean)} / 3`, String(classified), `${identified} / ${categories.length}`,
     ]], ['*', '*', '*']),
     {
@@ -98,15 +100,15 @@ export function analysisPdfDefinition(analysis: CompletedAnalysis): TDocumentDef
       style: 'muted'
     },
     {
-      text: 'Um trecho pode receber mais de uma categoria. A exportação inclui todos os trechos, independentemente dos filtros do dashboard.',
+      text: evaluation.assessment_scope ? 'A exportação inclui os trechos relacionados às categorias escolhidas ou usados como evidência complementar. O JSON preserva toda a classificação original. Filtros temporários da tela não alteram este relatório.' : 'Um trecho pode receber mais de uma categoria. A exportação inclui todos os trechos, independentemente dos filtros do dashboard.',
       style: 'muted'
     },
     heading('Categorias identificadas e notas'),
     {
-      text: categoryCoverageText(categories) + ' Tema não identificado não prova ausência: a avaliação também procura evidências em outros trechos. ' + (topicScopeExplanation(categories) ?? ''),
+      text: categoryCoverageText(chartCategories) + ' Tema não identificado não prova ausência: a avaliação também procura evidências em outros trechos. ' + (topicScopeExplanation(chartCategories) ?? ''),
       style: 'muted', margin: [0, 0, 0, 8],
     },
-    table(['Categoria', 'Detecção do tema', 'Nota ou motivo'], categories.map(category => [
+    table(['Categoria', 'Detecção do tema', 'Nota ou motivo'], chartCategories.map(category => [
       labels[category.label] ?? category.title, categoryDetectionText(category), categoryScoreText(category),
     ]), ['*', '*', '*']),
     {
@@ -116,11 +118,12 @@ export function analysisPdfDefinition(analysis: CompletedAnalysis): TDocumentDef
       style: 'muted'
     },
   ];
+  if (evaluation.assessment_scope) content.push(heading('Temas fora desta avaliação'), {ul: categories.filter(c => ['not_selected','not_scored'].includes(c.scoreStatus)).map(c => `${c.title}: ${categoryScoreText(c)}`)});
   const excludesUncertain = evaluation.uncertainty_policy === 'exclude_inconclusive_evidence_v1';
   const coverage = coverageExplanation(evaluation);
   if (coverage) content.push(heading('Cobertura da nota'), { text: coverage });
   content.push(heading('Memória de cálculo'));
-  for (const dimension of evaluation.dimensions) content.push(
+  for (const dimension of evaluation.dimensions.filter(d => d.status !== 'not_selected')) content.push(
     { text: `${dimension.title}: ${dimension.score === null ? 'Sem nota' : `${formatGrade(dimension.score)} / 3`}`, bold: true, margin: [0, 6, 0, 3] },
     { text: `${formatGrade(dimension.earned_points)} de ${excludesUncertain ? dimension.resolved_questions : dimension.applicable_questions} pontos; peso ${formatGrade(100 * (dimension.normalized_weight ?? 0))}%.${dimension.inconclusive_questions ? (excludesUncertain ? ` ${dimension.excluded_questions} pergunta(s) inconclusiva(s) fora do cálculo.${dimension.score === null ? ' Categoria fora da média.' : ''}` : ' Há pergunta inconclusiva; não é uma nota completa.') : ''}` },
     { ul: dimension.questions.map(questionPoints) },

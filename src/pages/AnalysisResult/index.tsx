@@ -1,4 +1,5 @@
 /** Carrega uma análise, acompanha seu estado e permite baixar documento, JSON e PDF. */
+import { selectionDescription } from '../../services/assessmentScope';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import Icon from '../../components/Icon';
@@ -88,6 +89,7 @@ function AnalysisView({ id }: { id: string; }) {
       document.getElementById('segment-search')?.focus({ preventScroll: true });
     });
   }}>
+    {data?.assessment_scope && data.status !== 'completed' && <p className="workspace-notice">{selectionDescription(data.assessment_scope)}</p>}
     {!data && !state.error && <section className="result-panel status-panel">
       <p role="status">Carregando análise…</p>
     </section>}

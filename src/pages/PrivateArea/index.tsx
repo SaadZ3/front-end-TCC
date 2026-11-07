@@ -5,6 +5,7 @@ import Icon from '../../components/Icon';
 import AnalysisShell from '../../components/AnalysisShell';
 import { useAuth } from '../../auth/auth-context';
 import { api } from '../../services/api';
+import { selectionDescription } from '../../services/assessmentScope';
 import { date, statusNames, type History } from '../../services/analyses';
 import { Card, Row, Badge, HistoryList, PageHeading, EmptyState, DeleteDialog } from '../../styles/analysisStyles';
 
@@ -87,6 +88,7 @@ export default function PrivateArea() {
         </EmptyState> :
           <HistoryList>
             {current.data.items.map(item => <li key={item.analysis_id}>
+              <p>{selectionDescription(item.assessment_scope, item.profile_id)}</p>
               <Row>
                 <div className="file-info">
                   <Icon name="document" size={22} />

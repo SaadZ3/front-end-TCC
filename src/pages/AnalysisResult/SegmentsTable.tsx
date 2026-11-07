@@ -113,7 +113,7 @@ export default function SegmentsTable({ rows, categories, query, onQuery, catego
       <div>
         <div className="panel-heading">
           <h2 id="segments-title">Trechos classificados e avaliados</h2>
-          <p>Confira os temas identificados e a nota ou o motivo de ausência de nota. Categorias fora da pontuação também podem ser filtradas.</p>
+          <p>Confira os temas apresentados e a nota ou o motivo de ausência de nota. Use os filtros para consultar os trechos desta avaliação.</p>
         </div>
         <span className="count-pill">
           {rows.length} trechos</span>

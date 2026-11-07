@@ -25,9 +25,11 @@ export function scaleExplanation(evaluation: CompletedAnalysis['result']['evalua
 
 export function coverageExplanation(evaluation: CompletedAnalysis['result']['evaluation']): string | null {
   if (evaluation.uncertainty_policy !== 'exclude_inconclusive_evidence_v1') return null;
-  const dimensions = evaluation.dimensions;
+  const dimensions = evaluation.dimensions.filter(d => d.status !== 'not_selected');
   const questions = dimensions.flatMap(d => d.questions);
   const excluded = new Set(questions.flatMap(q => q.contextual_groups.flatMap(g => g.evidence
     .map(e => `${e.segment_id}:${e.start}:${e.end}`)))).size;
-  return `${evaluation.score === null ? 'Base local avaliável' : 'Base da nota'}: ${dimensions.filter(d => d.score !== null).length} de ${dimensions.length} categorias; ${questions.filter(q => q.value !== null).length} de ${questions.length} perguntas com conclusão. ${excluded} passagem(ns) com dúvida desconsiderada(s) nas perguntas afetadas; os avisos continuam disponíveis.`;
+  const selection = evaluation.assessment_scope;
+  const selectionNote = selection ? ` ${selection.category_ids.length} de ${evaluation.dimensions.length} categorias selecionadas no perfil.` : '';
+  return `${evaluation.score === null ? 'Base local avaliável' : 'Base da nota'}: ${dimensions.filter(d => d.score !== null).length} de ${dimensions.length} categorias; ${questions.filter(q => q.value !== null).length} de ${questions.length} perguntas com conclusão.${selectionNote} ${excluded} passagem(ns) com dúvida desconsiderada(s) nas perguntas afetadas; os avisos continuam disponíveis.`;
 }

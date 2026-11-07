@@ -1,4 +1,5 @@
 /** Organiza indicadores, trechos e documentos nas abas do resultado. */
+import { meanTitle, selectionDescription } from '../../services/assessmentScope';
 import { formatPolicyMean, policyMean } from './policyMean';
 import { scoreBlockerMessages } from './scoreBlockers';
 import { useMemo, useState, type KeyboardEvent } from 'react';
@@ -18,7 +19,7 @@ export default function ResultDashboard({ analysis, query, onQuery, tab, onTab, 
   analysis: CompletedAnalysis; query: string; onQuery: (query: string) => void; tab: ResultTab; onTab: (tab: ResultTab) => void;
   onDownload: () => void; downloading: boolean; downloadError: string;
 }) {
-  const { categories, rows, classified, identified } = dashboardData(analysis);
+  const { categories, chartCategories, rows, classified, identified } = dashboardData(analysis);
   const [category, setCategory] = useState('all');
   const evaluation = analysis.result.evaluation;
   const mean = policyMean(evaluation);
@@ -87,14 +88,14 @@ export default function ResultDashboard({ analysis, query, onQuery, tab, onTab, 
         <small>Classificação temática</small>
       </div>
       <div className="metric-grid">
-        <section className="metric-card" aria-label="Nota média da política">
-          <span className="metric-label">Nota média da política</span>
+        <section className="metric-card" aria-label={meanTitle(evaluation.assessment_scope)}>
+          <span className="metric-label">{meanTitle(evaluation.assessment_scope)}</span>
           <span className="metric-icon">
             <Icon name="badge" size={15} />
           </span>
           <div className="metric-value">
             <strong className={mean === null ? 'no-score' : undefined}>
-              <output aria-label="Nota global da política">
+              <output aria-label={evaluation.assessment_scope?.mode === 'selected_categories' ? 'Média das categorias selecionadas' : 'Nota global da política'}>
                 {mean === null ? 'Sem nota global' : formatPolicyMean(mean)}
               </output>
             </strong>
@@ -133,12 +134,17 @@ export default function ResultDashboard({ analysis, query, onQuery, tab, onTab, 
         </section>
       </div>
       {coverage && <div className="result-notice warning" role="note" aria-label="Cobertura da nota"><p>{coverage}</p></div>}
-      <CategoryCharts categories={categories} selected={category} onSelect={selectCategory} />
+      {evaluation.assessment_scope && <section className="result-panel assessment-summary" aria-label="Categorias escolhidas">
+        <p>{selectionDescription(evaluation.assessment_scope)}</p>
+        <p>Compare notas apenas quando o conteúdo, o perfil e as categorias avaliadas forem equivalentes.</p>
+        <details><summary>Temas fora desta avaliação</summary><ul>{categories.filter(c => c.scoreStatus === 'not_selected' || c.scoreStatus === 'not_scored').map(c => <li key={c.id}>{c.title}: {c.scoreStatus === 'not_selected' ? 'Não selecionada para esta análise' : 'Fora do método'}</li>)}</ul></details>
+      </section>}
+      <CategoryCharts categories={chartCategories} selected={category} onSelect={selectCategory} />
       <details className="result-panel score-calculation" aria-label="Memória de cálculo das notas">
         <summary>Como as notas foram calculadas</summary>
         <p>{scaleExplanation(evaluation)}</p>
         <p>Método: {evaluation.method_version}. Nota zero indica o resultado dos critérios, não “não se aplica”.</p>
-        {evaluation.dimensions.map(dimension => <section key={dimension.id}>
+        {evaluation.dimensions.filter(d => d.status !== 'not_selected').map(dimension => <section key={dimension.id}>
           <h3>{dimension.title}: {dimension.score === null ? 'Sem nota' : `${formatGrade(dimension.score)} / 3`}</h3>
           <p>{formatGrade(dimension.earned_points)} de {excludesUncertain ? dimension.resolved_questions : dimension.applicable_questions} pontos possíveis.
             {' '}Peso na média: {formatGrade(100 * (dimension.normalized_weight ?? 0))}%.
@@ -156,7 +162,8 @@ export default function ResultDashboard({ analysis, query, onQuery, tab, onTab, 
           </li>)}</ul>
         </section>)}
       </details>
-      <SegmentsTable key={category} rows={rows} categories={categories} query={query} onQuery={onQuery} category={category} onCategory={setCategory} guidance={guidance.bySegment} partial={analysis.result.extraction.status !== 'ok'} />
+      {evaluation.assessment_scope && <p className="result-footnote">Os trechos abaixo estão relacionados aos temas escolhidos pelo classificador ou pelas evidências das perguntas. O JSON preserva todos os rótulos originais e os demais trechos.</p>}
+      <SegmentsTable key={category} rows={rows} categories={chartCategories} query={query} onQuery={onQuery} category={category} onCategory={setCategory} guidance={guidance.bySegment} partial={analysis.result.extraction.status !== 'ok'} />
       <GeneralRecommendations items={guidance.general} partial={analysis.result.extraction.status !== 'ok'} />
       {evaluation.score_scale === 'ordinal_0_3' && <div className="grade-legend" aria-label="Escala de avaliação">
         <strong>Escala de avaliação</strong>

@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router';
 import AnalysisShell from '../../components/AnalysisShell';
 import Icon from '../../components/Icon';
 import { api, ApiError } from '../../services/api';
+import { assessmentCategories, allCategoryIds, selectionDescription, type AssessmentScope, type CategoryId } from '../../services/assessmentScope';
 import type { Analysis, Scope } from '../../services/analyses';
 import { Card, UploadForm, UploadField, PageHeading, ContentColumns } from '../../styles/analysisStyles';
 
@@ -14,6 +15,11 @@ export default function NewAnalysis() {
   const previous = params.get('supersedes');
   const [file, setFile] = useState<File | null>(null);
   const [scope, setScope] = useState<Scope | ''>('');
+  const [selectionMode, setSelectionMode] = useState<AssessmentScope['mode']>('all_categories');
+  const [categoryIds, setCategoryIds] = useState<CategoryId[]>([...allCategoryIds]);
+  const [loadedPrevious, setLoadedPrevious] = useState<string | null>(null);
+  const previousReady = previous === null || loadedPrevious === previous;
+  const selection: AssessmentScope = {mode: selectionMode, category_ids: selectionMode === 'all_categories' ? [...allCategoryIds] : allCategoryIds.filter(id => categoryIds.includes(id))};
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [uncertain, setUncertain] = useState(false);
@@ -29,12 +35,25 @@ export default function NewAnalysis() {
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
   }, [busy]);
+  useEffect(() => {
+    if (!previous) return;
+    const controller = new AbortController();
+    api<Analysis>('/analyses/' + encodeURIComponent(previous), {signal: controller.signal}).then(data => {
+      if (controller.signal.aborted) return;
+      const saved = data.assessment_scope ?? {mode: data.profile_id === 'core-14-v1' ? 'selected_categories' : 'all_categories', category_ids: data.profile_id === 'core-14-v1' ? allCategoryIds.slice(0,7) : [...allCategoryIds]} as AssessmentScope;
+      setSelectionMode(saved.mode); setCategoryIds(saved.category_ids);
+      if (data.status === 'completed') setScope(data.result.document_scope);
+      setLoadedPrevious(previous);
+    }).catch(() => { if (!controller.signal.aborted) setError('Não foi possível carregar a seleção anterior. Reabra a reanálise pelo histórico.'); });
+    return () => controller.abort();
+  }, [previous]);
   /** Recebe o envio do formulário, valida os dados e apresenta o resultado ou a falha sem duplicar a requisição. */
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (pending.current) return;
+    if (pending.current || !previousReady) return;
     setError('');
     setUncertain(false);
+    if (!selection.category_ids.length) { setError('Selecione pelo menos uma categoria para avaliar.'); return; }
     if (!file || !scope) {
       setError('Selecione um arquivo e informe o escopo.');
       return;
@@ -57,6 +76,7 @@ export default function NewAnalysis() {
     body.append('file', file);
     body.append('language', 'pt');
     body.append('document_scope', scope);
+    body.append('assessment_scope', JSON.stringify(selection));
     if (previous) body.append('supersedes_analysis_id', previous);
     try {
       const result = await api<Analysis>('/analyses', { method: 'POST', body }, 240000);
@@ -87,7 +107,7 @@ export default function NewAnalysis() {
       <Card>
         <h2>Documento para análise</h2>
         <UploadForm onSubmit={event => void submit(event)} aria-busy={busy}>
-          <fieldset disabled={busy}>
+          <fieldset disabled={busy || !previousReady}>
             {previous && <p>Nova avaliação vinculada à <Link to={'/app/analyses/' + encodeURIComponent(previous)}>análise anterior</Link>. Envie o documento que deseja avaliar; o resultado anterior será preservado.</p>}
             <UploadField>
               <Icon name="upload" size={30} />
@@ -97,14 +117,31 @@ export default function NewAnalysis() {
               {file && <p role="status">
                 {file.name} · {(file.size / 1024).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} KiB</p>}
             </UploadField>
-            <label>Conteúdo enviado<select required value={scope} onChange={event => setScope(event.target.value as Scope)}>
+            <label>Conteúdo enviado<select required aria-describedby="scope-help" value={scope} onChange={event => setScope(event.target.value as Scope)}>
               <option value="">Selecione uma opção</option>
               <option value="full_document">Política inteira</option>
               <option value="excerpt">Somente um trecho</option>
               <option value="unknown">Não sei se a política está inteira</option>
             </select>
             </label>
+            <p id="scope-help">{scope === 'full_document' ? 'Permite média das categorias escolhidas, se a leitura estiver utilizável.' : scope === 'excerpt' ? 'Avalia apenas o trecho enviado; mostra notas locais, sem média global.' : scope === 'unknown' ? 'Mostra notas locais, sem média global, pois a integridade foi declarada como desconhecida.' : 'Informe se o documento está completo. Essa escolha é independente das categorias.'}</p>
+            <label>Categorias a avaliar<select value={selectionMode} onChange={event => { setSelectionMode(event.target.value as AssessmentScope['mode']); setError(''); }}>
+              <option value="all_categories">Todas as categorias com nota</option>
+              <option value="selected_categories">Escolher categorias</option>
+            </select></label>
+            {selectionMode === 'selected_categories' && <fieldset className="category-selection">
+              <legend>Marque as categorias que deseja avaliar</legend>
+              <div className="selection-actions">
+                <button type="button" className="result-button" onClick={() => { setCategoryIds([...allCategoryIds]); setError(''); }}>Selecionar todas</button>
+                <button type="button" className="result-button" onClick={() => { setCategoryIds([]); setError(''); }}>Limpar seleção</button>
+              </div>
+              {assessmentCategories.map(([id,title]) => <label key={id}><input type="checkbox" checked={categoryIds.includes(id)}
+                onChange={event => { setCategoryIds(ids => event.target.checked ? [...ids,id] : ids.filter(value => value !== id)); setError(''); }} />{title}</label>)}
+              <small>Outros temas ficam disponíveis no arquivo e no JSON, sem nota.</small>
+            </fieldset>}
+            <p className="workspace-notice" aria-label="Resumo da seleção">{selectionDescription(selection)} A média, os gráficos e as orientações consideram apenas esses temas. Conjuntos diferentes não devem ser comparados como uma mesma avaliação.</p>
           </fieldset>
+          {!previousReady && !error && <p role="status">Carregando seleção da análise anterior…</p>}
           <p>
             <small>Trechos e documentos incompletos recebem uma análise parcial, sem nota global.</small>
           </p>
@@ -113,7 +150,7 @@ export default function NewAnalysis() {
           </p>}
           {uncertain && <p className="workspace-notice">O envio pode ter sido recebido. <Link to="/app">Consulte o histórico</Link> antes de enviar novamente.</p>}
           {busy && <p className="workspace-notice" role="status">Analisando a política… Isso pode levar alguns minutos. Aguarde sem reenviar. Se sair desta tela, consulte depois o histórico.</p>}
-          <button className="result-button primary" type="submit" disabled={busy}>
+          <button className="result-button primary" type="submit" disabled={busy || !previousReady}>
             <Icon name="scan" size={15} />
             {busy ? 'Analisando…' : 'Analisar política'}
           </button>

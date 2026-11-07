@@ -26,6 +26,11 @@ export const UploadForm = styled.form`
   fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 22px; min-width: 0; }
   fieldset:disabled { opacity: .6; }
   button { justify-self: start; }
+  .category-selection { gap: 12px; }
+  .category-selection legend { font-weight: 600; margin-bottom: 12px; }
+  .category-selection label { display: flex; align-items: flex-start; gap: 10px; }
+  .category-selection input { width: 18px; height: 18px; flex-shrink: 0; margin: 0; accent-color: var(--green); }
+  .selection-actions { display: flex; gap: 8px; flex-wrap: wrap; }
   input::file-selector-button { background: #e3f4ed; border: 1px solid #b8d6c9; color: var(--green); padding: 8px 12px; border-radius: 4px; margin-right: 12px; cursor: pointer; font: inherit; }
 `;
 export const UploadField = styled.div`
@@ -38,7 +43,12 @@ export const UploadField = styled.div`
   p { font-size: 11px; max-width: 100%; }
   @media(max-width: 500px) {
     padding: 18px;
-    input::file-selector-button { display: block; width: 100%; margin: 0 0 8px; }
+    .category-selection { gap: 12px; }
+  .category-selection legend { font-weight: 600; margin-bottom: 12px; }
+  .category-selection label { display: flex; align-items: flex-start; gap: 10px; }
+  .category-selection input { width: 18px; height: 18px; flex-shrink: 0; margin: 0; accent-color: var(--green); }
+  .selection-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  input::file-selector-button { display: block; width: 100%; margin: 0 0 8px; }
   }
 `;
 export const ContentColumns = styled.div`

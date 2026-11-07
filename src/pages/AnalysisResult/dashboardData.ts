@@ -3,7 +3,7 @@ import { labels, type Analysis, type Grade, type Segment } from '../../services/
 import { formatGrade } from './scoreExplanation';
 
 export type CompletedAnalysis = Extract<Analysis, { status: 'completed'; }>;
-export type CategoryScoreStatus = 'scored' | 'not_scored' | 'inconclusive' | 'not_applicable' | 'unavailable';
+export type CategoryScoreStatus = 'scored' | 'not_selected' | 'not_scored' | 'inconclusive' | 'not_applicable' | 'unavailable';
 export interface CategoryScore {
   id: string; label: string; title: string; score: Grade | null;
   segmentCount: number; scoreStatus: CategoryScoreStatus;
@@ -37,8 +37,9 @@ const shortTitles: Record<string, string> = {
 
 /** Mantém a contagem do perfil salvo, inclusive quando uma categoria fica inconclusiva. */
 export function categoryCoverageText(categories: CategoryScore[]): string {
-  const scored = categories.filter(category => category.scoreStatus !== 'not_scored').length;
+  const scored = categories.filter(category => !['not_scored','not_selected'].includes(category.scoreStatus)).length;
   const informational = categories.length - scored;
+  if (!informational) return `Esta avaliação pontua ${scored} categoria(s) selecionada(s). A classificação do documento continua cobrindo os 10 temas.`;
   return `O sistema identifica ${categories.length} categorias. O método atual pontua ${scored}; ${informational === 1
     ? 'a outra permite consultar os trechos' : `as outras ${informational} permitem consultar os trechos`}, sem participar da média.`;
 }
@@ -62,6 +63,7 @@ export function categoryDetectionText(category: CategoryScore): string {
 export function categoryScoreText(category: CategoryScore): string {
   if (category.score !== null) return `${formatGrade(category.score)} / 3`;
   switch (category.scoreStatus) {
+    case 'not_selected': return 'Não selecionada para esta análise';
     case 'not_scored': return 'Fora da pontuação atual';
     case 'inconclusive': return 'Avaliação inconclusiva';
     case 'not_applicable': return 'Não se aplica neste perfil';
@@ -84,7 +86,7 @@ export function dashboardData(analysis: CompletedAnalysis) {
       scale: analysis.result.evaluation.score_scale,
       segmentCount: analysis.result.segments.filter(segment => segment.labels.includes(label)).length,
       // A ausência de uma dimensão esperada não significa que ela está fora do método.
-      scoreStatus: !dimensionId ? 'not_scored' : dimension?.score != null ? 'scored'
+      scoreStatus: !dimensionId ? 'not_scored' : dimension?.status === 'not_selected' ? 'not_selected' : dimension?.score != null ? 'scored'
         : dimension?.status === 'not_applicable' ? 'not_applicable'
           : dimension?.status === 'unresolved' ? 'inconclusive' : 'unavailable',
     };
@@ -98,9 +100,16 @@ export function dashboardData(analysis: CompletedAnalysis) {
       id: label, label, title: labels[label] ?? label, score: null, segmentCount: 0, scoreStatus: 'unavailable',
     }),
   }));
+  const selection = analysis.result.evaluation.assessment_scope;
+  const chartCategories = selection ? categories.filter(c => selection.category_ids.some(id => id === c.id)) : categories;
+  const selectedRows = selection ? rows.map(row => {
+    const evidenceDimensions = analysis.result.evaluation.dimensions.filter(d => d.questions.some(q => [...q.supporting_groups, ...q.contextual_groups].some(g => g.evidence.some(e => e.segment_id === row.segment.segment_id))));
+    return {...row, categories: chartCategories.filter(c => row.segment.labels.includes(c.label) || evidenceDimensions.some(d => d.id === c.id))};
+  }).filter(row => row.categories.length > 0) : rows;
   return {
     categories,
-    rows,
+    chartCategories,
+    rows: selectedRows,
     identified: categories.filter(category => category.segmentCount > 0).length,
     classified: analysis.result.segments.filter(segment => segment.labels.length > 0).length
   };

@@ -13,6 +13,9 @@ export interface Segment {
   probabilities: Record<string, number>;
   truncated: boolean;
 }
+export type { AssessmentScope } from './assessmentScope';
+import type { AssessmentScope } from './assessmentScope';
+
 export type QuestionStatus = 'supported' | 'partial' | 'not_detected' | 'inconclusive' | 'not_applicable';
 export interface EvidenceGroup {
   id: string;
@@ -53,7 +56,7 @@ export interface Dimension {
   title: string;
   weight: number;
   normalized_weight: number | null;
-  status: 'resolved' | 'unresolved' | 'not_applicable';
+  status: 'resolved' | 'unresolved' | 'not_applicable' | 'not_selected';
   score: Grade | null;
   contribution: number | null;
   earned_points: number;
@@ -119,7 +122,7 @@ export interface Result {
   segments: Segment[];
   evaluation: {
     score_scale: 'ordinal_0_3' | 'continuous_0_3'; score_conversion?: 'percentage_to_ordinal_v1';
-    schema_version: 2; policy_id: string; language: 'pt'; index: 'documentary_information_quality';
+    schema_version: 2 | 3; assessment_scope?: AssessmentScope; policy_id: string; language: 'pt'; index: 'documentary_information_quality';
     method_version: string; uncertainty_policy?: 'exclude_inconclusive_evidence_v1'; profile_id: 'core-14-v1' | 'documentary-18-v1'; profile_sha256: string; validation_status: 'not_human_validated';
     input_status: 'complete_input' | 'partial_input' | 'no_usable_segments'; score_status: 'available' | 'blocked';
     score: Grade | null; score_blockers: string[]; rules_version: string; rules_sha256: string; predictions_sha256: string;
@@ -133,7 +136,7 @@ export interface Versions {
   recommendations: string | null;
 }
 export type Analysis = {
-  schema_version: 2; analysis_id: string; original_filename: string; created_at: string;
+  schema_version: 2 | 3; assessment_scope?: AssessmentScope; analysis_id: string; original_filename: string; created_at: string;
   supersedes_analysis_id: string | null; profile_id: 'core-14-v1' | 'documentary-18-v1'
  } & (
     { status: 'processing'; result: null; versions: null; error: null; } |
@@ -141,7 +144,7 @@ export type Analysis = {
     { status: 'failed'; result: null; versions: Versions | null; error: { code: string; message: string; }; }
   );
 export interface History {
-  items: { analysis_id: string; original_filename: string; created_at: string; status: Analysis['status']; schema_version: 2; supersedes_analysis_id: string | null; }[];
+  items: { analysis_id: string; original_filename: string; created_at: string; status: Analysis['status']; schema_version: 2 | 3; assessment_scope?: AssessmentScope; profile_id?: string; supersedes_analysis_id: string | null; }[];
   page: number;
   page_size: number;
   total: number;

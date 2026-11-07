@@ -756,6 +756,10 @@ export const WorkspaceFrame = styled.div`
   .row-categories > div, .row-grades > div {
     min-height: 43px;
   }
+  .assessment-summary { padding: 20px; margin-bottom: 20px; overflow-wrap: anywhere; }
+  .assessment-summary p { margin: 0 0 12px; line-height: 1.6; }
+  .assessment-summary summary { cursor: pointer; font-weight: 600; }
+  .assessment-summary ul { padding-left: 20px; margin-bottom: 0; line-height: 1.8; }
   .score-calculation { padding: 20px; margin-bottom: 20px; overflow-wrap: anywhere; }
   .score-calculation > summary { cursor: pointer; font-weight: 600; }
   .score-calculation p { margin: 12px 0; line-height: 1.6; }
