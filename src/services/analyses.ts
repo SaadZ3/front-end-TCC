@@ -120,7 +120,7 @@ export interface Result {
   evaluation: {
     score_scale: 'ordinal_0_3' | 'continuous_0_3'; score_conversion?: 'percentage_to_ordinal_v1';
     schema_version: 2; policy_id: string; language: 'pt'; index: 'documentary_information_quality';
-    method_version: string; uncertainty_policy?: 'exclude_inconclusive_evidence_v1'; profile_id: 'core-14-v1'; profile_sha256: string; validation_status: 'not_human_validated';
+    method_version: string; uncertainty_policy?: 'exclude_inconclusive_evidence_v1'; profile_id: 'core-14-v1' | 'documentary-18-v1'; profile_sha256: string; validation_status: 'not_human_validated';
     input_status: 'complete_input' | 'partial_input' | 'no_usable_segments'; score_status: 'available' | 'blocked';
     score: Grade | null; score_blockers: string[]; rules_version: string; rules_sha256: string; predictions_sha256: string;
     fallback_enabled: boolean; dimensions: Dimension[]; findings: Finding[]; recommendations: Recommendation[]; limitations: string[];
@@ -134,7 +134,7 @@ export interface Versions {
 }
 export type Analysis = {
   schema_version: 2; analysis_id: string; original_filename: string; created_at: string;
-  supersedes_analysis_id: string | null; profile_id: 'core-14-v1'
+  supersedes_analysis_id: string | null; profile_id: 'core-14-v1' | 'documentary-18-v1'
  } & (
     { status: 'processing'; result: null; versions: null; error: null; } |
     { status: 'completed'; result: Result; versions: Versions; error: null; } |

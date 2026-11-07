@@ -1,5 +1,7 @@
 # Frontend do protótipo
 
+**Atual R10:** perfil `documentary-18-v1`, nove categorias e 18 perguntas, mantendo a R9 para excluir dúvidas. Histórico de sete categorias preservado. Exige a migration `20261106000100_documentary_18_profile` e atualização coordenada dos três serviços. Implementação local, sem publicação; 7/8 exemplos adicionais corresponderam à expectativa. Ver [entrega e limites](../docs/R10_IMPLEMENTACAO.md). As marcações R9/R8/R7 abaixo são históricas.
+
 **Atual R9:** tela e PDF mostram a cobertura da nota e as exclusões por dúvida. A média considera as categorias avaliáveis. Ver [entrega R9](../docs/R9_IMPLEMENTACAO.md). Análises anteriores não são recalculadas pela interface; precisam de reanálise. Publicação não realizada. O registro R7/R8 abaixo é histórico.
 
 **R7/R8:** notas, detalhes, recomendações e exportação conferidos localmente. A publicação da revisão está suspensa pelas falhas de reconhecimento da [R7](../docs/R7_REVALIDACAO_NOTAS.md). Ver [entrega e limites da R8](../docs/R8_CONSOLIDACAO_ENTREGA.md).

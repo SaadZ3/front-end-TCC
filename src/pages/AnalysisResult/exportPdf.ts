@@ -3,7 +3,7 @@ import { formatPolicyMean, policyMean } from './policyMean';
 import { scoreBlockerMessages } from './scoreBlockers';
 import type { Content, TDocumentDefinitions, TableCell } from 'pdfmake/interfaces';
 import { date, labels, scopeNames, type Grade } from '../../services/analyses';
-import { categoryDetectionText, categoryScoreText, dashboardData, gradeDescriptions, type SegmentRow, type CompletedAnalysis } from './dashboardData';
+import { topicScopeExplanation, categoryCoverageText, categoryDetectionText, categoryScoreText, dashboardData, gradeDescriptions, type SegmentRow, type CompletedAnalysis } from './dashboardData';
 import { formatGrade, questionPoints, scaleExplanation, coverageExplanation } from './scoreExplanation';
 import { findingObservation } from './recommendationData';
 
@@ -103,7 +103,7 @@ export function analysisPdfDefinition(analysis: CompletedAnalysis): TDocumentDef
     },
     heading('Categorias identificadas e notas'),
     {
-      text: 'O sistema identifica 10 categorias. O método atual pontua 7; as outras 3 permitem consultar os trechos, sem participar da média. Tema não identificado não prova ausência: a avaliação também procura evidências em outros trechos.',
+      text: categoryCoverageText(categories) + ' Tema não identificado não prova ausência: a avaliação também procura evidências em outros trechos. ' + (topicScopeExplanation(categories) ?? ''),
       style: 'muted', margin: [0, 0, 0, 8],
     },
     table(['Categoria', 'Detecção do tema', 'Nota ou motivo'], categories.map(category => [

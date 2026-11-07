@@ -19,6 +19,8 @@ const dimensionLabels: Record<string, string> = {
   retention: 'Data Retention',
   security: 'Data Security',
   changes: 'Policy Change',
+  dnt: 'Do Not Track',
+  audiences: 'International and Specific Audiences',
 };
 const shortTitles: Record<string, string> = {
   'First Party Collection/Use': 'Coleta e uso de dados',
@@ -32,6 +34,21 @@ const shortTitles: Record<string, string> = {
   'International and Specific Audiences': 'Públicos específicos e contexto internacional',
   Other: 'Outros temas',
 };
+
+/** Mantém a contagem do perfil salvo, inclusive quando uma categoria fica inconclusiva. */
+export function categoryCoverageText(categories: CategoryScore[]): string {
+  const scored = categories.filter(category => category.scoreStatus !== 'not_scored').length;
+  const informational = categories.length - scored;
+  return `O sistema identifica ${categories.length} categorias. O método atual pontua ${scored}; ${informational === 1
+    ? 'a outra permite consultar os trechos' : `as outras ${informational} permitem consultar os trechos`}, sem participar da média.`;
+}
+
+/** Explica o alcance das novas notas sem atribuir esse método ao histórico. */
+export function topicScopeExplanation(categories: CategoryScore[]): string | null {
+  return categories.some(category => category.id === 'dnt' && category.scoreStatus !== 'not_scored')
+    ? 'DNT avalia a explicação da resposta ao sinal de não rastrear; uma resposta negativa clara pode pontuar. Públicos específicos avalia duas perguntas sobre os grupos ou contextos encontrados, sem comprovar cobertura de todos os públicos.'
+    : null;
+}
 
 export const gradeDescriptions: Record<Grade, string> = {
   0: 'Faixa inicial', 1: 'Faixa básica', 2: 'Faixa intermediária', 3: 'Faixa superior',
@@ -54,8 +71,10 @@ export function categoryScoreText(category: CategoryScore): string {
 
 /** Recebe uma análise concluída e retorna categorias, linhas e contagens do painel. */
 export function dashboardData(analysis: CompletedAnalysis) {
+  const expectedDimensions = analysis.result.evaluation.profile_id === 'documentary-18-v1'
+    ? Object.keys(dimensionLabels) : Object.keys(dimensionLabels).slice(0, 7);
   const categories: CategoryScore[] = Object.entries(labels).map(([label, title]) => {
-    const dimensionId = Object.keys(dimensionLabels).find(id => dimensionLabels[id] === label);
+    const dimensionId = expectedDimensions.find(id => dimensionLabels[id] === label);
     const dimension = analysis.result.evaluation.dimensions.find(item => item.id === dimensionId);
     return {
       id: dimensionId ?? label,

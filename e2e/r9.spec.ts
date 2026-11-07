@@ -1,6 +1,7 @@
 /** Confere exclusão de dúvidas, cobertura, memória de cálculo e exportação. */
 import { expect, test, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
+const artifacts = process.env.E2E_ARTIFACT_DIR || '../docs/evidencias/R9';
 
 function fixture(name: string) {
   const path=name==='hp'
@@ -36,7 +37,7 @@ test('categoria excluída redistribui peso e mantém zero nas demais',async({pag
   await expect(details).toContainText('Peso na média: 16,67%');
   await page.setViewportSize({width:390,height:844});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-  await page.screenshot({path:'../docs/evidencias/R9/cobertura-mobile.png',fullPage:true});
+  await page.screenshot({path:`${artifacts}/cobertura-mobile.png`,fullPage:true});
   const pdf=await page.evaluate(async analysis=>{
     const path='/src/pages/AnalysisResult/exportPdf.ts';
     return JSON.stringify((await import(/* @vite-ignore */path)).analysisPdfDefinition(analysis));
@@ -49,7 +50,7 @@ test('categoria excluída redistribui peso e mantém zero nas demais',async({pag
     const path='/src/pages/AnalysisResult/exportPdf.ts';
     await (await import(/* @vite-ignore */path)).exportAnalysisPdf(analysis);
   },data);
-  await (await downloading).saveAs('../docs/evidencias/R9/categoria-excluida.pdf');
+  await (await downloading).saveAs(`${artifacts}/categoria-excluida.pdf`);
 });
 test('sem nenhuma pergunta avaliável explica por que não há média',async({page})=>{
   await open(page,fixture('all-inconclusive'));

@@ -2,7 +2,7 @@
 import { useId } from 'react';
 import Icon from '../../components/Icon';
 import { formatGrade as number } from './scoreExplanation';
-import { categoryDetectionText, categoryScoreText, type CategoryScore } from './dashboardData';
+import { topicScopeExplanation, categoryCoverageText, categoryDetectionText, categoryScoreText, type CategoryScore } from './dashboardData';
 
 /** Recebe o rótulo e devolve linhas curtas para sua apresentação no gráfico. */
 function wrapLabel(label: string) {
@@ -29,7 +29,7 @@ function Radar({ categories }: { categories: CategoryScore[]; }) {
     <p className="result-footnote">O gráfico de radar precisa de pelo menos três categorias com nota disponível.</p>
   </div>;
   return <div className="radar-wrap">
-    <svg className="radar-chart" viewBox="0 0 400 326" role="img" aria-labelledby={`${titleId} ${descriptionId}`}>
+    <svg className="radar-chart" viewBox={scored.length > 7 ? "-35 -10 470 346" : "0 0 400 326"} role="img" aria-labelledby={`${titleId} ${descriptionId}`}>
       <title id={titleId}>Perfil da política — notas de 0 a 3</title>
       <desc id={descriptionId}>
         {scored.map(category => `${category.title}: ${number(category.score!)} de 3`).join('; ')}. Categorias sem nota não são representadas.</desc>
@@ -40,7 +40,7 @@ function Radar({ categories }: { categories: CategoryScore[]; }) {
         const lines = wrapLabel(category.title);
         return <g key={category.label}>
           <line x1={cx} y1={cy} x2={x} y2={y} stroke="#e2eaf4" strokeWidth=".85" />
-          <text x={labelX} y={labelY - (lines.length - 1) * 6} textAnchor={Math.abs(labelX - cx) < 5 ? 'middle' : labelX > cx ? 'start' : 'end'}>
+          <text x={labelX} y={labelY - (lines.length - 1) * 6} style={scored.length > 7 ? { fontSize: 12 } : undefined} textAnchor={Math.abs(labelX - cx) < 5 ? 'middle' : labelX > cx ? 'start' : 'end'}>
             {lines.map((line, lineIndex) => <tspan key={lineIndex} x={labelX} dy={lineIndex ? 12 : 0}>
               {line}
             </tspan>)}
@@ -71,7 +71,8 @@ export default function CategoryCharts({ categories, selected, onSelect }: {
       <div className="panel-heading">
         <h2 id="category-chart-title">
           <Icon name="chart" size={15} />Categorias identificadas e notas</h2>
-        <p>O sistema identifica 10 categorias. O método atual pontua 7; as outras 3 permitem consultar os trechos, sem participar da média.</p>
+        <p>{categoryCoverageText(categories)}</p>
+        {topicScopeExplanation(categories) && <p>{topicScopeExplanation(categories)}</p>}
       </div>
       <div className="bar-chart">
         <div className="bar-scale" aria-hidden="true">

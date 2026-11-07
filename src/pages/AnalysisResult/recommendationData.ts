@@ -17,6 +17,13 @@ export interface Complement {
 export interface SegmentGuidance { items: Guidance[]; complements: Complement[]; }
 
 const elementNames: Record<string, string> = {
+  identified_dnt_signal: 'sinal DNT identificado',
+  organization_dnt_response: 'resposta da organização ao sinal DNT',
+  dnt_effect: 'efeito da resposta sobre o tratamento',
+  dnt_scope: 'serviço, dados ou contexto alcançado',
+  identified_audience: 'público ou contexto internacional identificado',
+  audience_scope: 'quem é abrangido pela declaração',
+  audience_practice: 'prática ou orientação ligada a esse público',
   collection_practice: 'como ocorre a coleta ou o uso',
   identifiable_data_type: 'quais dados são coletados ou usados',
   collected_data_type: 'quais dados são usados',
