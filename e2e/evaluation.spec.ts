@@ -25,7 +25,7 @@ test('envio usa o método definitivo sem seleção nem parâmetros técnicos', a
   await page.getByLabel('Arquivo da política').setInputFiles({
     name: 'politica.txt', mimeType: 'text/plain', buffer: Buffer.from('Coletamos nome para prestar serviços.'),
   });
-  await page.getByLabel('Conteúdo enviado').selectOption('full_document');
+  await page.getByLabel('Avaliação da política').selectOption('all_categories');
   const pending = page.waitForRequest(request => request.method() === 'POST' && request.url().endsWith('/api/analyses'));
   await page.getByRole('button', { name: 'Analisar política', exact: true }).click();
   const request = await pending;
@@ -49,7 +49,7 @@ test('histórico e dashboard não expõem versões nem o relatório removido', a
   await expect(page.getByRole('button', { name: 'Ver relatório detalhado' })).toHaveCount(0);
   await page.getByRole('link', { name: 'Reavaliar política' }).click();
   await page.getByLabel('Arquivo da política').setInputFiles({ name: 'revisada.txt', mimeType: 'text/plain', buffer: Buffer.from('Política revisada.') });
-  await page.getByLabel('Conteúdo enviado').selectOption('excerpt');
+  await page.getByLabel('Avaliação da política').selectOption('selected_categories');
   const pending = page.waitForRequest(request => request.method() === 'POST' && request.url().endsWith('/api/analyses'));
   await page.getByRole('button', { name: 'Analisar política', exact: true }).click();
   expect((await pending).postData()).toContain('name="supersedes_analysis_id"\r\n\r\nui-analysis');

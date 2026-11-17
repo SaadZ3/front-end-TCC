@@ -1,5 +1,13 @@
 # Frontend do protótipo
 
+O envio usa uma única escolha: **Política inteira** avalia todas as nove categorias;
+**Não é inteira, escolher categorias** abre as caixas para selecionar ao menos uma.
+Documentos incompletos recebem notas e média apenas das categorias escolhidas.
+Essa média não representa a política inteira. Falhas de leitura ou ausência de
+perguntas avaliáveis ainda podem impedir a média. Não há mais uma escolha separada de integridade desconhecida;
+nessa situação, use a opção incompleta. Resultados salvos permanecem iguais e a
+reanálise mantém as categorias anteriores no novo formulário.
+
 **Atual R11:** categorias selecionáveis no envio, com seleção salva antes da inferência e respeitada no cálculo, painel, histórico e PDF. Respostas novas na versão 3; histórico versão 2 preservado. Mantém as perguntas e regras da R10, inclusive suas limitações. Exige a migration `20261106000200_assessment_scope`, geração do cliente Prisma e atualização coordenada dos três serviços. Ver [entrega, testes e exemplo](../docs/R11_IMPLEMENTACAO.md). Implementação local, sem publicação; notas de versões anteriores abaixo são históricas.
 
 **Atual R10:** perfil `documentary-18-v1`, nove categorias e 18 perguntas, mantendo a R9 para excluir dúvidas. Histórico de sete categorias preservado. Exige a migration `20261106000100_documentary_18_profile` e atualização coordenada dos três serviços. Implementação local, sem publicação; 7/8 exemplos adicionais corresponderam à expectativa. Ver [entrega e limites](../docs/R10_IMPLEMENTACAO.md). As marcações R9/R8/R7 abaixo são históricas.

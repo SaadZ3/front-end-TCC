@@ -102,7 +102,7 @@ export default function ResultDashboard({ analysis, query, onQuery, tab, onTab, 
             {mean !== null && <span>/ 3</span>}
           </div>
           <p>
-            {mean === null ? 'Há impedimentos para emitir a nota global' : 'Média ponderada dos critérios, de 0 a 3'}
+            {mean === null ? 'Há impedimentos para emitir a nota global' : evaluation.assessment_scope?.mode === 'selected_categories' && analysis.result.document_scope !== 'full_document' ? 'Média das categorias escolhidas no conteúdo enviado; não representa a política inteira' : 'Média ponderada dos critérios, de 0 a 3'}
           </p>
         </section>
         <section className="metric-card" aria-label="Trechos classificados">

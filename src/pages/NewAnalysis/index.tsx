@@ -5,7 +5,7 @@ import AnalysisShell from '../../components/AnalysisShell';
 import Icon from '../../components/Icon';
 import { api, ApiError } from '../../services/api';
 import { assessmentCategories, allCategoryIds, selectionDescription, type AssessmentScope, type CategoryId } from '../../services/assessmentScope';
-import type { Analysis, Scope } from '../../services/analyses';
+import type { Analysis } from '../../services/analyses';
 import { Card, UploadForm, UploadField, PageHeading, ContentColumns } from '../../styles/analysisStyles';
 
 /** Recebe documento e escopo e envia uma nova análise ao backend. Retorna o conteúdo da página ou componente. */
@@ -14,11 +14,11 @@ export default function NewAnalysis() {
   const [params] = useSearchParams();
   const previous = params.get('supersedes');
   const [file, setFile] = useState<File | null>(null);
-  const [scope, setScope] = useState<Scope | ''>('');
   const [selectionMode, setSelectionMode] = useState<AssessmentScope['mode']>('all_categories');
   const [categoryIds, setCategoryIds] = useState<CategoryId[]>([...allCategoryIds]);
   const [loadedPrevious, setLoadedPrevious] = useState<string | null>(null);
   const previousReady = previous === null || loadedPrevious === previous;
+  const scope = selectionMode === 'all_categories' ? 'full_document' : 'excerpt';
   const selection: AssessmentScope = {mode: selectionMode, category_ids: selectionMode === 'all_categories' ? [...allCategoryIds] : allCategoryIds.filter(id => categoryIds.includes(id))};
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -41,8 +41,9 @@ export default function NewAnalysis() {
     api<Analysis>('/analyses/' + encodeURIComponent(previous), {signal: controller.signal}).then(data => {
       if (controller.signal.aborted) return;
       const saved = data.assessment_scope ?? {mode: data.profile_id === 'core-14-v1' ? 'selected_categories' : 'all_categories', category_ids: data.profile_id === 'core-14-v1' ? allCategoryIds.slice(0,7) : [...allCategoryIds]} as AssessmentScope;
-      setSelectionMode(saved.mode); setCategoryIds(saved.category_ids);
-      if (data.status === 'completed') setScope(data.result.document_scope);
+      const incomplete = data.status === 'completed' && data.result.document_scope !== 'full_document';
+      setSelectionMode(incomplete ? 'selected_categories' : saved.mode);
+      setCategoryIds(saved.category_ids);
       setLoadedPrevious(previous);
     }).catch(() => { if (!controller.signal.aborted) setError('Não foi possível carregar a seleção anterior. Reabra a reanálise pelo histórico.'); });
     return () => controller.abort();
@@ -54,8 +55,8 @@ export default function NewAnalysis() {
     setError('');
     setUncertain(false);
     if (!selection.category_ids.length) { setError('Selecione pelo menos uma categoria para avaliar.'); return; }
-    if (!file || !scope) {
-      setError('Selecione um arquivo e informe o escopo.');
+    if (!file) {
+      setError('Selecione um arquivo para avaliar.');
       return;
     }
     if (!/\.(pdf|txt)$/i.test(file.name)) {
@@ -117,18 +118,11 @@ export default function NewAnalysis() {
               {file && <p role="status">
                 {file.name} · {(file.size / 1024).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} KiB</p>}
             </UploadField>
-            <label>Conteúdo enviado<select required aria-describedby="scope-help" value={scope} onChange={event => setScope(event.target.value as Scope)}>
-              <option value="">Selecione uma opção</option>
-              <option value="full_document">Política inteira</option>
-              <option value="excerpt">Somente um trecho</option>
-              <option value="unknown">Não sei se a política está inteira</option>
-            </select>
-            </label>
-            <p id="scope-help">{scope === 'full_document' ? 'Permite média das categorias escolhidas, se a leitura estiver utilizável.' : scope === 'excerpt' ? 'Avalia apenas o trecho enviado; mostra notas locais, sem média global.' : scope === 'unknown' ? 'Mostra notas locais, sem média global, pois a integridade foi declarada como desconhecida.' : 'Informe se o documento está completo. Essa escolha é independente das categorias.'}</p>
-            <label>Categorias a avaliar<select value={selectionMode} onChange={event => { setSelectionMode(event.target.value as AssessmentScope['mode']); setError(''); }}>
-              <option value="all_categories">Todas as categorias com nota</option>
-              <option value="selected_categories">Escolher categorias</option>
+            <label>Avaliação da política<select aria-describedby="scope-help" value={selectionMode} onChange={event => { setSelectionMode(event.target.value as AssessmentScope['mode']); setError(''); }}>
+              <option value="all_categories">Política inteira</option>
+              <option value="selected_categories">Não é inteira, escolher categorias</option>
             </select></label>
+            <p id="scope-help">{selectionMode === 'all_categories' ? 'Avalia todas as categorias e calcula a nota média da política quando a leitura permite.' : 'Marque as categorias que deseja avaliar. A média considera apenas as categorias escolhidas no conteúdo enviado e não representa a política inteira.'}</p>
             {selectionMode === 'selected_categories' && <fieldset className="category-selection">
               <legend>Marque as categorias que deseja avaliar</legend>
               <div className="selection-actions">
@@ -139,12 +133,9 @@ export default function NewAnalysis() {
                 onChange={event => { setCategoryIds(ids => event.target.checked ? [...ids,id] : ids.filter(value => value !== id)); setError(''); }} />{title}</label>)}
               <small>Outros temas ficam disponíveis no arquivo e no JSON, sem nota.</small>
             </fieldset>}
-            <p className="workspace-notice" aria-label="Resumo da seleção">{selectionDescription(selection)} A média, os gráficos e as orientações consideram apenas esses temas. Conjuntos diferentes não devem ser comparados como uma mesma avaliação.</p>
+            <p className="workspace-notice" aria-label="Resumo da seleção">{selectionDescription(selection)} As notas, os gráficos e as orientações consideram apenas esses temas. Conjuntos diferentes não devem ser comparados como uma mesma avaliação.</p>
           </fieldset>
           {!previousReady && !error && <p role="status">Carregando seleção da análise anterior…</p>}
-          <p>
-            <small>Trechos e documentos incompletos recebem uma análise parcial, sem nota global.</small>
-          </p>
           {error && <p className="workspace-error" role="alert">
             {error}
           </p>}
@@ -161,8 +152,8 @@ export default function NewAnalysis() {
         <p>Use um documento em português, com até 50 páginas e 100 mil caracteres.</p>
         <h2>O PDF precisa conter texto</h2>
         <p>Documentos digitalizados apenas como imagem precisam de reconhecimento de texto (OCR) e não são suportados.</p>
-        <h2>Política inteira ou trecho?</h2>
-        <p>Essa informação determina se o sistema pode calcular a nota média da política. Se não tiver certeza, escolha a opção correspondente.</p>
+        <h2>Qual opção escolher?</h2>
+        <p>Escolha “Política inteira” para avaliar todas as categorias. Se o documento estiver incompleto ou você não tiver certeza, escolha “Não é inteira, escolher categorias” e marque os temas que deseja avaliar.</p>
         <div className="workspace-notice">O resultado apoia a leitura. Não é uma certificação de conformidade com a LGPD.</div>
       </aside>
     </ContentColumns>

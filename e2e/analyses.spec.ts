@@ -20,7 +20,7 @@ test.beforeEach(async ({ page }) => {
 });
 async function form(page: Page) {
   await page.goto('/app/new');
-  await page.getByLabel('Conteúdo enviado').selectOption('full_document');
+  await page.getByLabel('Avaliação da política').selectOption('all_categories');
 }
 
 test('PDF real: envio, evidências, recarga, histórico, download e tela móvel', async ({ page }) => {
@@ -51,14 +51,14 @@ test('PDF real: envio, evidências, recarga, histórico, download e tela móvel'
   await expect(page).toHaveURL(savedUrl.split('?')[0]);
 });
 
-test('TXT real declarado como trecho mostra nota global indisponível', async ({ page }) => {
+test('TXT real declarado como trecho mostra média das categorias escolhidas', async ({ page }) => {
   await form(page);
   await page.getByLabel('Arquivo da política').setInputFiles({ name: 'trecho.txt', mimeType: 'text/plain',
     buffer: Buffer.from('Coletamos nome e e-mail para prestar serviços. Você pode solicitar a exclusão de seus dados.') });
-  await page.getByLabel('Conteúdo enviado').selectOption('excerpt');
+  await page.getByLabel('Avaliação da política').selectOption('selected_categories');
   await page.getByRole('button', { name: 'Analisar política', exact: true }).click();
   await expect(page).toHaveURL(/\/app\/analyses\//);
-  await expect(page.getByText('Sem nota global', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Média das categorias selecionadas').last()).toHaveText(/^[0-3],\d{2}$/);
 });
 
 test('rejeita arquivo inválido/grande antes do upload; OCR real salva falha legível', async ({ page }) => {

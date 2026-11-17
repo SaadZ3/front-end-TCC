@@ -102,7 +102,7 @@ test('envio, evidência, download, histórico e logout permanecem utilizáveis',
   await page.goto('/app/new');
   await expect(page.getByRole('link', { name: 'Nova análise', exact: true })).toHaveAttribute('aria-current', 'page');
   await page.getByLabel('Arquivo da política').setInputFiles({ name: 'politica.txt', mimeType: 'text/plain', buffer: Buffer.from('Coletamos nome e e-mail.') });
-  await page.getByLabel('Conteúdo enviado').selectOption('full_document');
+  await page.getByLabel('Avaliação da política').selectOption('all_categories');
   await page.getByRole('button', { name: 'Analisar política', exact: true }).click();
   await expect(page).toHaveURL(/ui-analysis/);
   await expect(page.getByRole('table', {name: 'Trechos classificados e notas das categorias'})).toBeVisible();
@@ -121,7 +121,7 @@ test('histórico vazio orienta o primeiro envio e arquivo inválido não é envi
   await page.goto('/app');
   await page.getByRole('link', { name: 'Enviar uma política', exact: true }).click();
   await page.getByLabel('Arquivo da política').setInputFiles({ name: 'politica.docx', mimeType: 'text/plain', buffer: Buffer.from('Texto') });
-  await page.getByLabel('Conteúdo enviado').selectOption('excerpt');
+  await page.getByLabel('Avaliação da política').selectOption('selected_categories');
   await page.getByRole('button', { name: 'Analisar política', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('PDF com texto');
 });

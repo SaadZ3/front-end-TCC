@@ -17,10 +17,13 @@ async function routes(page:Page,data=fixture(),onPost?:(body:string)=>void) {
   });
 }
 test('envio exige ao menos uma categoria e transmite o conjunto escolhido',async({page})=>{
-  let posted='';await routes(page,fixture(),body=>{posted=body;});await page.goto('/app/new');
+  let posted='';await routes(page,fixture('excerpt','selected-average'),body=>{posted=body;});await page.goto('/app/new');
   await page.getByLabel('Arquivo da política').setInputFiles({name:'exemplo.txt',mimeType:'text/plain',buffer:Buffer.from('Guardamos dados pessoais.')});
-  await page.getByLabel('Conteúdo enviado').selectOption('full_document');
-  await page.getByRole('combobox',{name:'Categorias a avaliar',exact:true}).selectOption('selected_categories');
+  const evaluation = page.getByRole('combobox',{name:'Avaliação da política',exact:true});
+  await expect(page.getByRole('combobox')).toHaveCount(1);
+  await expect(evaluation.locator('option')).toHaveText(['Política inteira','Não é inteira, escolher categorias']);
+  await expect(page.getByRole('checkbox')).toHaveCount(0);
+  await evaluation.selectOption('selected_categories');
   await expect(page.getByRole('checkbox',{checked:true})).toHaveCount(9);
   await page.getByRole('button',{name:'Limpar seleção'}).click();
   await page.getByRole('button',{name:'Analisar política',exact:true}).click();
@@ -35,7 +38,41 @@ test('envio exige ao menos uma categoria e transmite o conjunto escolhido',async
   await page.getByRole('button',{name:'Analisar política',exact:true}).click();
   await expect(page).toHaveURL(/analyses\/r11-test/);
   expect(posted).toContain('assessment_scope');expect(posted).toContain('"category_ids":["retention","security"]');
+  expect(posted).toContain('name="document_scope"\r\n\r\nexcerpt');
   await expect(page.getByLabel('Média das categorias selecionadas').last()).toHaveText('1,88');
+  await expect(page.getByText('Média das categorias escolhidas no conteúdo enviado; não representa a política inteira')).toBeVisible();
+});
+
+test('média parcial e seu limite aparecem no painel, PDF e JSON',async({page})=>{
+  const data=fixture('excerpt','selected-average');await routes(page,data);await page.goto('/app/analyses/r11-test');
+  await expect(page.getByLabel('Média das categorias selecionadas').last()).toHaveText('1,88');
+  const definition=await page.evaluate(async analysis=>{
+    const path='/src/pages/AnalysisResult/exportPdf.ts';return JSON.stringify((await import(/* @vite-ignore */path)).analysisPdfDefinition(analysis));
+  },data);
+  expect(definition).toContain('Média das categorias selecionadas');
+  expect(definition).toContain('1,88 / 3');
+  expect(definition).toContain('não representa a política inteira');
+  expect(definition).not.toContain('categorias na política inteira');
+  const download=page.waitForEvent('download');await page.getByRole('button',{name:'Exportar JSON',exact:true}).click();
+  const exported=JSON.parse(readFileSync(await (await download).path() as string,'utf8'));
+  expect(exported.result.document_scope).toBe('excerpt');
+  expect(exported.result.evaluation.score).toBe(1.875);
+  expect(exported.result.evaluation.input_status).toBe('partial_input');
+});
+
+test('voltar para política inteira avalia todas as categorias',async({page})=>{
+  let posted='';await routes(page,fixture('all'),body=>{posted=body;});await page.goto('/app/new');
+  const evaluation = page.getByLabel('Avaliação da política');
+  await evaluation.selectOption('selected_categories');
+  await page.getByRole('button',{name:'Limpar seleção'}).click();
+  await page.getByRole('checkbox',{name:'Segurança',exact:true}).check();
+  await evaluation.selectOption('all_categories');
+  await expect(page.getByRole('checkbox')).toHaveCount(0);
+  await page.getByLabel('Arquivo da política').setInputFiles({name:'inteira.txt',mimeType:'text/plain',buffer:Buffer.from('Política completa para teste.')});
+  await page.getByRole('button',{name:'Analisar política',exact:true}).click();
+  await expect(page).toHaveURL(/analyses\/r11-test/);
+  expect(posted).toContain('name="document_scope"\r\n\r\nfull_document');
+  expect(posted).toContain(JSON.stringify({mode:'all_categories',category_ids:['collection','sharing','choice','access','retention','security','changes','dnt','audiences']}));
 });
 for(const [name,mean,count] of [['one','3,00',1],['two','1,88',2],['three','1,25',3]] as const)test(`${count} categoria(s): cálculo, barras e radar`,async({page})=>{
   await routes(page,fixture(name));await page.goto('/app/analyses/r11-test');
@@ -78,7 +115,7 @@ test('histórico, falha e reanálise mantêm a seleção salva',async({page})=>{
   const data=fixture();await routes(page,data);await page.goto('/app');
   await expect(page.getByText(/Categorias selecionadas \(2 de 9\)/)).toBeVisible();
   await page.goto('/app/new?supersedes=r11-test');
-  await expect(page.getByRole('combobox',{name:'Categorias a avaliar',exact:true})).toHaveValue('selected_categories');
+  await expect(page.getByRole('combobox',{name:'Avaliação da política',exact:true})).toHaveValue('selected_categories');
   await expect(page.getByRole('checkbox',{checked:true})).toHaveCount(2);
   await page.unrouteAll();await routes(page,{...data,status:'failed',result:null,versions:null,error:{code:'INFERENCE_UNAVAILABLE',message:'Serviço indisponível.'}});
   await page.goto('/app/analyses/r11-test');await expect(page.getByText(/Categorias selecionadas \(2 de 9\)/)).toBeVisible();

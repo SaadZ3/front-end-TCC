@@ -133,7 +133,7 @@ export function analysisPdfDefinition(analysis: CompletedAnalysis): TDocumentDef
   if (limitations.length) content.push(heading('Limitações e avisos'), { ul: [...new Set(limitations)] });
   content.push(heading(`Trechos analisados (${rows.length})`),
     {
-      text: 'As notas abaixo são das categorias na política inteira, não notas individuais dos trechos. Trechos truncados são apresentados sem nota.',
+      text: 'As notas abaixo são das categorias avaliadas no conteúdo enviado, não notas individuais dos trechos. Trechos truncados são apresentados sem nota.',
       style: 'muted',
       margin: [0, 0, 0, 12]
     });
