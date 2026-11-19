@@ -796,6 +796,16 @@ export const WorkspaceFrame = styled.div`
     font-size: 10px;
     margin-top: 4px;
   }
+  .structural-segments {
+    border-top: 1px solid #e4ebf4;
+    padding: 11px 19px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .structural-segments > summary { cursor: pointer; font-weight: 600; }
+  .structural-segments p { margin: 8px 0; line-height: 1.5; }
+  .structural-segments ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .structural-segments li { display: grid; gap: 2px; overflow-wrap: anywhere; }
   .empty-segments {
     text-align: center;
     color: var(--muted);

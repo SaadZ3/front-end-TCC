@@ -1,6 +1,7 @@
 /** Prepara categorias e trechos da análise para os gráficos e filtros. */
 import { labels, type Analysis, type Grade, type Segment } from '../../services/analyses';
 import { formatGrade } from './scoreExplanation';
+import { structuralReason } from './structuralSegments';
 
 export type CompletedAnalysis = Extract<Analysis, { status: 'completed'; }>;
 export type CategoryScoreStatus = 'scored' | 'not_selected' | 'not_scored' | 'inconclusive' | 'not_applicable' | 'unavailable';
@@ -106,10 +107,14 @@ export function dashboardData(analysis: CompletedAnalysis) {
     const evidenceDimensions = analysis.result.evaluation.dimensions.filter(d => d.questions.some(q => [...q.supporting_groups, ...q.contextual_groups].some(g => g.evidence.some(e => e.segment_id === row.segment.segment_id))));
     return {...row, categories: chartCategories.filter(c => row.segment.labels.includes(c.label) || evidenceDimensions.some(d => d.id === c.id))};
   }).filter(row => row.categories.length > 0) : rows;
+  // Títulos e sumários continuam no cálculo; só saem da lista principal.
+  const hiddenRows = selectedRows.filter(row => structuralReason(row.segment.text) !== null);
+  const hidden = new Set(hiddenRows);
   return {
     categories,
     chartCategories,
-    rows: selectedRows,
+    rows: selectedRows.filter(row => !hidden.has(row)),
+    hiddenRows,
     identified: categories.filter(category => category.segmentCount > 0).length,
     classified: analysis.result.segments.filter(segment => segment.labels.length > 0).length
   };

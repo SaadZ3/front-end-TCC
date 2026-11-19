@@ -6,6 +6,7 @@ import { categoryScoreText, filterSegments, gradeDescriptions, type CategoryScor
 import SegmentRecommendations, { HighlightedText } from './SegmentRecommendations';
 import type { SegmentGuidance } from './recommendationData';
 import { formatGrade } from './scoreExplanation';
+import { structuralReason } from './structuralSegments';
 
 /** Recebe a nota e seu estado e retorna o indicador visual correspondente. */
 export function GradeBadge({ grade }: { grade: Grade | null; }) {
@@ -101,9 +102,24 @@ function PaginatedRows({ rows, guidance, partial }: { rows: SegmentRow[]; guidan
   </>;
 }
 
+/** Lista recolhida dos títulos e sumários tirados da tabela; eles seguem no cálculo da nota. */
+function StructuralSegments({ rows }: { rows: SegmentRow[]; }) {
+  if (!rows.length) return null;
+  return <details className="structural-segments">
+    <summary>Títulos, sumários e menus ocultos ({rows.length})</summary>
+    <p>Textos que só organizam o documento. Eles saem da lista acima para facilitar a leitura, mas continuam na análise e não alteram a nota.</p>
+    <ul>
+      {rows.map(({ segment, index }) => <li key={segment.segment_id}>
+        <span className="segment-index">Trecho {String(index + 1).padStart(2, '0')}{segment.page_start !== null ? ` · Página ${segment.page_start}` : ''} · {structuralReason(segment.text)}</span>
+        <span>“{segment.text.replace(/\s+/gu, ' ').trim()}”</span>
+      </li>)}
+    </ul>
+  </details>;
+}
+
 /** Recebe as linhas da análise e retorna a tabela filtrável e paginada. */
-export default function SegmentsTable({ rows, categories, query, onQuery, category, onCategory, guidance, partial }: {
-  rows: SegmentRow[]; categories: CategoryScore[]; query: string; onQuery: (query: string) => void; category: string; onCategory: (category: string) => void;
+export default function SegmentsTable({ rows, hiddenRows, categories, query, onQuery, category, onCategory, guidance, partial }: {
+  rows: SegmentRow[]; hiddenRows: SegmentRow[]; categories: CategoryScore[]; query: string; onQuery: (query: string) => void; category: string; onCategory: (category: string) => void;
   guidance: Map<string, SegmentGuidance>; partial: boolean;
 }) {
   const [grade, setGrade] = useState('all');
@@ -141,5 +157,6 @@ export default function SegmentsTable({ rows, categories, query, onQuery, catego
       </div>
     </div>
     <PaginatedRows key={`${query}|${category}|${grade}`} rows={filtered} guidance={guidance} partial={partial} />
+    <StructuralSegments rows={hiddenRows} />
   </section>;
 }

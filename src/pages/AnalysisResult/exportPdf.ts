@@ -70,7 +70,7 @@ function appendRecommendations(content: Content[], evaluation: CompletedAnalysis
 
 /** Recebe uma análise concluída e retorna a definição completa do relatório A4. */
 export function analysisPdfDefinition(analysis: CompletedAnalysis): TDocumentDefinitions {
-  const { categories, chartCategories, rows, classified, identified } = dashboardData(analysis);
+  const { categories, chartCategories, rows, hiddenRows, classified, identified } = dashboardData(analysis);
   const { evaluation, extraction } = analysis.result;
   const mean = policyMean(evaluation);
   const content: Content[] = [
@@ -139,6 +139,10 @@ export function analysisPdfDefinition(analysis: CompletedAnalysis): TDocumentDef
     });
   if (!rows.length) content.push({ text: 'Nenhum trecho disponível.' });
   appendSegments(content, rows);
+  if (hiddenRows.length) content.push({
+    text: `${hiddenRows.length} título(s), sumário(s) ou menu(s) foram omitidos desta lista (trechos ${hiddenRows.map(row => String(row.index + 1).padStart(2, '0')).join(', ')}). Eles continuam na análise e não alteram a nota.`,
+    style: 'muted', margin: [0, 4, 0, 12],
+  });
   if (evaluation.findings.length) {
     content.push(heading('Achados da avaliação'));
     const questions = new Map(evaluation.dimensions.flatMap(d => d.questions).map(q => [q.id, q]));

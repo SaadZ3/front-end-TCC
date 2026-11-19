@@ -234,3 +234,27 @@ test('filtro de nota respeita a mesma categoria em trechos com vários rótulos'
   await page.getByLabel('Filtrar nota da categoria').selectOption('0');
   await expect(page.getByRole('table').getByRole('row')).toHaveCount(2);
 });
+
+test('títulos, sumários e menus saem da tabela, mas ficam listados e não mudam a nota', async ({ page }) => {
+  const data = fixture();
+  const structural = [
+    'Política de Privacidade da Apple Atualizado em 30 de julho de 2025',
+    '+ Dados Pessoais Que a Apple Coleta de Você',
+    'Onde armazenamos suas informações',
+    '1. APRESENTAÇÃO E CONTEXTO 2. DEFINIÇÕES 2.1 Dados Pessoais 2.2 Dados Sensíveis 3. COMPARTILHAMENTO 4.1 Prestadores de Serviços 4.2 Autoridades',
+  ];
+  data.result.segments.splice(0, 0, ...structural.map((text, index) => ({ segment_id: `structural-${index}`, text,
+    labels: ['First Party Collection/Use'], probabilities: {}, truncated: false, page_start: 1, page_end: 1 })));
+  await mock(page, data);
+  const table = page.getByRole('table', { name: 'Trechos classificados e notas das categorias' });
+  await expect(page.getByText('1–5 de 20 trechos')).toBeVisible();
+  for (const text of structural) await expect(table).not.toContainText(text);
+  // A numeração original se mantém: o primeiro conteúdo real é o Trecho 05.
+  await expect(table).toContainText('Trecho 05');
+  const hidden = page.locator('details.structural-segments');
+  await expect(hidden.locator('summary')).toHaveText('Títulos, sumários e menus ocultos (4)');
+  await hidden.locator('summary').click();
+  await expect(hidden).toContainText('Trecho 04 · Página 1 · sumário');
+  await expect(hidden).toContainText('Onde armazenamos suas informações');
+  await expect(page.getByLabel('Nota global da política', { exact: true })).toHaveText(formatPolicyMean(policyMean(data.result.evaluation)!));
+});

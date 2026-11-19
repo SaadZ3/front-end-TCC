@@ -19,7 +19,7 @@ export default function ResultDashboard({ analysis, query, onQuery, tab, onTab, 
   analysis: CompletedAnalysis; query: string; onQuery: (query: string) => void; tab: ResultTab; onTab: (tab: ResultTab) => void;
   onDownload: () => void; downloading: boolean; downloadError: string;
 }) {
-  const { categories, chartCategories, rows, classified, identified } = dashboardData(analysis);
+  const { categories, chartCategories, rows, hiddenRows, classified, identified } = dashboardData(analysis);
   const [category, setCategory] = useState('all');
   const evaluation = analysis.result.evaluation;
   const mean = policyMean(evaluation);
@@ -163,7 +163,7 @@ export default function ResultDashboard({ analysis, query, onQuery, tab, onTab, 
         </section>)}
       </details>
       {evaluation.assessment_scope && <p className="result-footnote">Os trechos abaixo estão relacionados aos temas escolhidos pelo classificador ou pelas evidências das perguntas. O JSON preserva todos os rótulos originais e os demais trechos.</p>}
-      <SegmentsTable key={category} rows={rows} categories={chartCategories} query={query} onQuery={onQuery} category={category} onCategory={setCategory} guidance={guidance.bySegment} partial={analysis.result.extraction.status !== 'ok'} />
+      <SegmentsTable key={category} rows={rows} hiddenRows={hiddenRows} categories={chartCategories} query={query} onQuery={onQuery} category={category} onCategory={setCategory} guidance={guidance.bySegment} partial={analysis.result.extraction.status !== 'ok'} />
       <GeneralRecommendations items={guidance.general} partial={analysis.result.extraction.status !== 'ok'} />
       {evaluation.score_scale === 'ordinal_0_3' && <div className="grade-legend" aria-label="Escala de avaliação">
         <strong>Escala de avaliação</strong>
@@ -200,7 +200,7 @@ export default function ResultDashboard({ analysis, query, onQuery, tab, onTab, 
           </div>
         </dl>
         <p>
-          {rows.length} trechos extraídos{analysis.result.extraction.page_count ? ` em ${analysis.result.extraction.page_count} páginas` : ''}.</p>
+          {rows.length + hiddenRows.length} trechos extraídos{analysis.result.extraction.page_count ? ` em ${analysis.result.extraction.page_count} páginas` : ''}.</p>
         {!!analysis.result.extraction.warnings.length && <ul>
           {analysis.result.extraction.warnings.map((warning, index) => <li key={index}>
             {warning}
