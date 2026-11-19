@@ -16,7 +16,8 @@ const startsLikeHeading = /^[+\d\p{Lu}©]/u;
  *      "Coletamos seu nome para criar a conta." → null.
  */
 export function structuralReason(text: string): StructuralReason | null {
-  const compact = text.replace(/\s+/gu, ' ').trim();
+  // Aspas nas pontas vêm do PDF/HTML e não dizem se é título ou frase.
+  const compact = text.replace(/\s+/gu, ' ').trim().replace(/^["'“”‘’«]+|["'“”‘’»]+$/gu, '').trim();
   const lower = compact.toLocaleLowerCase('pt-BR');
   if (lower.startsWith('sumário') || lower.startsWith('índice')
     || ((compact.match(sectionNumber)?.length ?? 0) >= 6 && (compact.match(fullStop)?.length ?? 0) <= 1)) return 'sumário';
